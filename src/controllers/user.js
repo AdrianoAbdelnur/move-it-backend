@@ -28,9 +28,9 @@ const loginUser = async (req, res) => {
         const userFound = await User.findOne({ email, isDeleted: false });
         console.log(userFound)
         if (!userFound) return res.status(400).json({ message: 'Incorrect user credentials.' });
-        const loginSucceed = bcryptjs.compare(password, userFound?.password);
+        const loginSucceed = await bcryptjs.compare(password, userFound?.password);
+        console.log(loginSucceed)
         if (!loginSucceed) return res.status(400).json({ message: 'Incorrect user credentials.' });
-
         const payload = {
             user: {
                 id: userFound._id,
