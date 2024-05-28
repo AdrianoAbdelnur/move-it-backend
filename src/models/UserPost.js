@@ -35,7 +35,11 @@ const UserPostSchema = new Schema({
     status: {
         type: String,
         default: "Pending"
-    }
+    },
+    isDelete: {
+        type: Boolean,
+        default: false,
+    },
 },{
     versionKey: false
 }
