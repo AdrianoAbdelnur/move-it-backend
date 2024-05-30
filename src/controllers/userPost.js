@@ -1,3 +1,4 @@
+const { default: mongoose } = require("mongoose");
 const UserPost = require("../models/UserPost");
 
 const addPost = async(req, res) => {
@@ -21,9 +22,19 @@ const getAllPosts =  async (req, res) => {
 
 const getMyPosts =  async (req, res) => {
     try {
-        const {_id} = req.params
-        const postsList = await UserPost.find({isDeleted:false, _id});
-        res.status(200).json({message: 'Clients obtained correctly', postsList})
+        console.log(req.params)
+        const {id} = req.params
+        const myPost = await UserPost.find({owner: id});
+        res.status(200).json({message: 'Posts found succesfully', myPost})
+    } catch (error) {
+        res.status(error.code || 500).json({message : error.message})
+    }
+}
+
+const getPendingPosts =  async (req, res) => {
+    try {
+        const pendingPost = await UserPost.find({status: "Pending"});
+        res.status(200).json({message: 'Pending Posts found succesfully', pendingPost})
     } catch (error) {
         res.status(error.code || 500).json({message : error.message})
     }
@@ -32,5 +43,6 @@ const getMyPosts =  async (req, res) => {
 module.exports = {
     addPost,
     getAllPosts,
-    getMyPosts
+    getMyPosts,
+    getPendingPosts
 }
