@@ -36,6 +36,16 @@ const UserPostSchema = new Schema({
         type: String,
         default: "Pending"
     },
+    offers: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Offer'
+        },
+    ],
+    createAt: {
+        type: Date,
+        default: Date.now(),
+    },
     isDelete: {
         type: Boolean,
         default: false,
