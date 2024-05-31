@@ -28,9 +28,9 @@ const UserPostSchema = new Schema({
         to: {type: String } 
     },
     date: { 
-        date: {type: String }, 
-        time: {type: String } 
-    },
+        date: {type: Date }, 
+    }
+    ,
     extraComents: {type: String },
     status: {
         type: String,
