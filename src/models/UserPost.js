@@ -28,7 +28,7 @@ const UserPostSchema = new Schema({
         to: {type: String } 
     },
     date: { 
-        date: {type: Date }, 
+       type: Date
     }
     ,
     extraComents: {type: String },
