@@ -22,7 +22,6 @@ const getAllPosts =  async (req, res) => {
 
 const getMyPosts =  async (req, res) => {
     try {
-        console.log(req.params)
         const {id} = req.params
         const myPost = await UserPost.find({owner: id});
         res.status(200).json({message: 'Posts found succesfully', myPost})
@@ -33,7 +32,7 @@ const getMyPosts =  async (req, res) => {
 
 const getPendingPosts =  async (req, res) => {
     try {
-        const pendingPost = await UserPost.find({status: "Pending"}).populate("owner");
+        const pendingPost = await UserPost.find({status: "Pending"});
         res.status(200).json({message: 'Pending Posts found succesfully', pendingPost})
     } catch (error) {
         res.status(error.code || 500).json({message : error.message})
