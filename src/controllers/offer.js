@@ -14,7 +14,7 @@ const addOffer = async(req, res) => {
 const getMyOffers =  async (req, res) => {
     try {
         const {id} = req.params
-        const myOffers = await Offer.find({owner: id});
+        const myOffers = await Offer.find({owner: id}).populate("owner").populate("post");
         res.status(200).json({message: 'Offers found succesfully', myOffers})
     } catch (error) {
         res.status(error.code || 500).json({message : error.message})
