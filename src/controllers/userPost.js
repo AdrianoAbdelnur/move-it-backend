@@ -23,7 +23,13 @@ const getAllPosts =  async (req, res) => {
 const getMyPosts =  async (req, res) => {
     try {
         const {id} = req.params
-        const myPost = await UserPost.find({owner: id});
+        const myPost = await UserPost.find({owner: id}).populate({
+            path: 'offers',
+            populate: {
+              path: 'owner',
+              select: 'name'
+            }
+          });
         res.status(200).json({message: 'Posts found succesfully', myPost})
     } catch (error) {
         res.status(error.code || 500).json({message : error.message})
@@ -39,9 +45,24 @@ const getPendingPosts =  async (req, res) => {
     }
 }
 
+const addNewOffer =  async (req, res) => {
+    try {
+        const {postId, newOfferId} = req.body
+        const postFound = await UserPost.findById(postId);
+        if (postFound) {
+            const newOffersList = [...postFound.offers, newOfferId]
+            const newPost = await UserPost.findByIdAndUpdate(postId, {offers: newOffersList}, {new: true})
+            res.status(200).json({message: 'Offer sent succesfully', newPost})
+        }
+    } catch (error) {
+        res.status(error.code || 500).json({message : error.message})
+    }
+}
+
 module.exports = {
     addPost,
     getAllPosts,
     getMyPosts,
-    getPendingPosts
+    getPendingPosts,
+    addNewOffer
 }
