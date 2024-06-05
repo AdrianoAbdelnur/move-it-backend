@@ -38,7 +38,7 @@ const getMyPosts =  async (req, res) => {
 
 const getPendingPosts =  async (req, res) => {
     try {
-        const pendingPost = await UserPost.find({status: "Pending"});
+        const pendingPost = await UserPost.find({status: "Pending"}).populate("owner");
         res.status(200).json({message: 'Pending Posts found succesfully', pendingPost})
     } catch (error) {
         res.status(error.code || 500).json({message : error.message})
