@@ -24,8 +24,14 @@ const UserPostSchema = new Schema({
         },
     },
     directions: { 
-        from: {type: String }, 
-        to: {type: String } 
+        from: {
+            description: {type: String },
+            place_id: {type: String}
+        }, 
+        to: {
+            description: {type: String },
+            place_id: {type: String} 
+        } 
     },
     date: { 
        type: Date
