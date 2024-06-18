@@ -9,7 +9,6 @@ const UserPostSchema = new Schema({
         type: String
     },
     dimensions: {
-
         length: {
             type: Number
         },

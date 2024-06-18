@@ -1,7 +1,10 @@
 const {model, Schema} = require("mongoose");
 
 const UserSchema = new Schema({
-    name: {
+    given_name: {
+        type: String
+    },
+    family_name: {
         type: String
     },
     email: {
@@ -22,6 +25,17 @@ const UserSchema = new Schema({
         type: String,
         default: 'user'
     },
+    transportInfo: {
+        vehicle: {
+            type: String    
+        },
+        registrationPlate: {
+            type: String
+        },
+        licenseImage: {
+            type: String
+        }
+    }
 },{
     versionKey: false
 }
