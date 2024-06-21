@@ -28,11 +28,26 @@ const UserSchema = new Schema({
     transportInfo: {
         vehicle: {
             type: String    
-        },
+        }, 
         registrationPlate: {
             type: String
         },
-        licenseImage: {
+        cargoAreaImg: {
+            type: String    
+        },
+        generalImg: {
+            type: String    
+        },
+        licenseFrontImg: {
+            type: String
+        },
+        licenseBackImg: {
+            type: String
+        },
+        profilePhotoImg: {
+            type: String
+        },
+        policeCheckPdf: {
             type: String
         }
     }
