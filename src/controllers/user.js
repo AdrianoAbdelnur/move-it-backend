@@ -101,8 +101,8 @@ const updateFields = async (req, res) => {
         }
         const updatedUser = await User.findByIdAndUpdate(req.userId, { $set: updateFields }, { new: true }).select('-password' );
         let allFilled = true;
-        for (const value of Object.values(updatedUser.transportInfo)) {
-            if(!value) {
+        for (const [key, value] of Object.entries(updatedUser.transportInfo)) {
+            if(!value && key !== 'profilePhotoImg') {
                 allFilled = false
                 break
             }
@@ -111,13 +111,19 @@ const updateFields = async (req, res) => {
             updatedUser.infoCompletedFlag = true;
             await updatedUser.save();
         }
-        const transportInfoStatus = {};
+        let transportInfoStatus = {};
         for (const [key, value] of Object.entries(updatedUser.transportInfo)) {
             transportInfoStatus[key] = value? true : false;
         }
-        updatedUser.transportInfo={...transportInfoStatus, vehicle: updatedUser.transportInfo.vehicle, registrationPlate:updatedUser.transportInfo.registrationPlate }
-        console.log(updatedUser)
-        res.status(200).json({ message: "User's data successfully edited.", user: updatedUser });
+        transportInfoStatus={
+            infoCompletedFlag: updatedUser.infoCompletedFlag,
+            transportInfo:{
+                ...transportInfoStatus, 
+                vehicle: updatedUser.transportInfo.vehicle, 
+                registrationPlate:updatedUser.transportInfo.registrationPlate 
+            }
+        }
+        res.status(200).json({ message: "User's data uploaded successfully.", transportInfoStatus });
     } catch (error) {
         res.status(error.code || 500).json({ message: error.message });
     }
