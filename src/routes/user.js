@@ -1,5 +1,5 @@
 const express = require("express");
-const { addUser, registerUser, loginUser, getUser, getAllUsers, verifyTransportFields, updateField } = require("../controllers/user");
+const { registerUser, loginUser, getUser, getAllUsers, verifyTransportFields, updateFields } = require("../controllers/user");
 const { validate } = require("../helpers/validate");
 const { verifyRegisterFields, verifyLoginFields } = require("../middlewares/users");
 const { decodeToken, adminRequiredValidation } = require("../middlewares/auth");
@@ -9,7 +9,7 @@ router.post('/register', verifyRegisterFields(), validate, registerUser);
 router.post('/login', verifyLoginFields(), validate, loginUser);
 
 router.get('/verifyFields', decodeToken, verifyTransportFields);
-router.patch('/updateOwnUser', decodeToken, updateField);
+router.patch('/updateFields', decodeToken, updateFields);
 
 router.get('/dataUser', decodeToken, getUser);
 router.get('/all', decodeToken, adminRequiredValidation, getAllUsers);
