@@ -25,6 +25,14 @@ const UserSchema = new Schema({
         type: String,
         default: 'user'
     },
+    infoCompletedFlag: {
+        type: Boolean,
+        default: false
+    },
+    authorizedTransport: {
+        type: Boolean,
+        default: false
+    },
     transportInfo: {
         vehicle: {
             type: String    
