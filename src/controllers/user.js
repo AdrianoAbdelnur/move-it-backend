@@ -93,23 +93,24 @@ const deleteUser = async (req, res) => {
     }
 };
 
-const updateField = async (req, res) => {
+const updateFields = async (req, res) => {
     try {
-        const [field, value] = Object.entries(req.body)[0];
-        const updatefield = { [`transportInfo.${field}`]: value };
-        const updatedUser = await User.findByIdAndUpdate(req.userId, { $set: updatefield }, { new: true });
+        const updateFields = {};
+        for (const [field, value] of Object.entries(req.body)) {
+            updateFields[`transportInfo.${field}`] = value;
+        }
+        const updatedUser = await User.findByIdAndUpdate(req.userId, { $set: updateFields }, { new: true });
         let allFilled = true;
         for (const value of Object.values(updatedUser.transportInfo)) {
             if(!value) {
                 allFilled = false
+                break
             }
         }
         if (allFilled) {
             updatedUser.infoCompletedFlag = true;
             await updatedUser.save();
         }
-        
-        
         res.status(200).json({ message: "User's data successfully edited.", user: updatedUser });
     } catch (error) {
         res.status(error.code || 500).json({ message: error.message });
@@ -140,7 +141,7 @@ const verifyTransportFields = async(req,res) => {
         if (!userFound) return res.status(400).json({ message: 'User Not Found' });
         const transportInfoStatus = {};
         for (const [key, value] of Object.entries(userFound.transportInfo)) {
-            transportInfoStatus[key] = value? 'filled' : 'empty';
+            transportInfoStatus[key] = value? true : false;
         }
         res.status(200).json({ message: 'Data successfully obtained', transportInfoStatus });
     } catch (error) {
@@ -156,6 +157,6 @@ module.exports = {
     deleteUser,
     updateUser,
     loginStatus,
-    updateField,
+    updateFields,
     verifyTransportFields
 }
