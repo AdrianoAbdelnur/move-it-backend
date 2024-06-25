@@ -24,12 +24,9 @@ const registerUser = async (req, res) => {
 const loginUser = async (req, res) => {
     try {
         const { email, password } = req.body;
-        console.log(email, password)
         const userFound = await User.findOne({ email, isDeleted: false });
-        console.log(userFound)
         if (!userFound) return res.status(400).json({ message: 'Incorrect user credentials.' });
         const loginSucceed = await bcryptjs.compare(password, userFound?.password);
-        console.log(loginSucceed)
         if (!loginSucceed) return res.status(400).json({ message: 'Incorrect user credentials.' });
         const payload = {
             user: {
@@ -50,7 +47,7 @@ const loginUser = async (req, res) => {
 
 const getUser = async (req, res) => {
     try {
-        const userFound = await User.findById(req.userId).select('-password');
+        const userFound = await User.findById(req.userId).select('-password -transportInfo.generalImg -transportInfo.policeCheckPdf -transportInfo.cargoAreaImg -transportInfo.licenseFrontImg -transportInfo.licenseBackImg --transportInfo.profilePhotoImg -transportInfo.profilePhotoImg' );
         if (!userFound) return res.status(400).json({ message: 'usuario no encontrado' });
         res.status(200).json({ message: 'datos de usuario localizados con exito', userFound });
     } catch (error) {
@@ -62,14 +59,11 @@ const getAllUsers = async (req, res) => {
     try {
         const { page = 1, limit = 2, paginated = true } = req.query;
         const usersCount = await User.countDocuments();
-        console.log(usersCount)
         const pagesCount = Math.ceil(usersCount / limit);
-        console.log(pagesCount)
         const skip = (page - 1) * limit;
         if (page > pagesCount) return res.status(400).json({ message: 'pagina no encontrada' });
         if (!paginated) {
             const usersFound = await User.find({ isDeleted: false }).select('-password -deleted -profilePicture');
-            console.log(usersFound)
             if (usersFound.length === 0) return res.status(400).json({ message: 'lista de usuarios vacia' });
             return res.status(200).json({ message: 'usuarios extraidos de forma exitosa', users: usersFound })
         }
@@ -99,9 +93,23 @@ const deleteUser = async (req, res) => {
     }
 };
 
-const updateOwnUser = async (req, res) => {
+const updateField = async (req, res) => {
     try {
-        const updatedUser = await User.findByIdAndUpdate(req.userId, req.body, { new: true });
+        const [field, value] = Object.entries(req.body)[0];
+        const updatefield = { [`transportInfo.${field}`]: value };
+        const updatedUser = await User.findByIdAndUpdate(req.userId, { $set: updatefield }, { new: true });
+        let allFilled = true;
+        for (const value of Object.values(updatedUser.transportInfo)) {
+            if(!value) {
+                allFilled = false
+            }
+        }
+        if (allFilled) {
+            updatedUser.infoCompletedFlag = true;
+            await updatedUser.save();
+        }
+        
+        
         res.status(200).json({ message: "User's data successfully edited.", user: updatedUser });
     } catch (error) {
         res.status(error.code || 500).json({ message: error.message });
@@ -126,6 +134,20 @@ const loginStatus = (req, res) => {
     }
 }
 
+const verifyTransportFields = async(req,res) => {
+    try {
+        const userFound = await User.findById(req.userId).select('-password');
+        if (!userFound) return res.status(400).json({ message: 'User Not Found' });
+        const transportInfoStatus = {};
+        for (const [key, value] of Object.entries(userFound.transportInfo)) {
+            transportInfoStatus[key] = value? 'filled' : 'empty';
+        }
+        res.status(200).json({ message: 'Data successfully obtained', transportInfoStatus });
+    } catch (error) {
+        res.status(error.code || 500).json({ message: error.message })
+    }
+}
+
 module.exports = {
     registerUser,
     loginUser,
@@ -134,5 +156,6 @@ module.exports = {
     deleteUser,
     updateUser,
     loginStatus,
-    updateOwnUser,
+    updateField,
+    verifyTransportFields
 }
