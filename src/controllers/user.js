@@ -99,7 +99,7 @@ const updateFields = async (req, res) => {
         for (const [field, value] of Object.entries(req.body)) {
             updateFields[`transportInfo.${field}`] = value;
         }
-        const updatedUser = await User.findByIdAndUpdate(req.userId, { $set: updateFields }, { new: true });
+        const updatedUser = await User.findByIdAndUpdate(req.userId, { $set: updateFields }, { new: true }).select('-password' );
         let allFilled = true;
         for (const value of Object.values(updatedUser.transportInfo)) {
             if(!value) {
@@ -111,6 +111,12 @@ const updateFields = async (req, res) => {
             updatedUser.infoCompletedFlag = true;
             await updatedUser.save();
         }
+        const transportInfoStatus = {};
+        for (const [key, value] of Object.entries(updatedUser.transportInfo)) {
+            transportInfoStatus[key] = value? true : false;
+        }
+        updatedUser.transportInfo={...transportInfoStatus, vehicle: updatedUser.transportInfo.vehicle, registrationPlate:updatedUser.transportInfo.registrationPlate }
+        console.log(updatedUser)
         res.status(200).json({ message: "User's data successfully edited.", user: updatedUser });
     } catch (error) {
         res.status(error.code || 500).json({ message: error.message });
@@ -139,10 +145,11 @@ const verifyTransportFields = async(req,res) => {
     try {
         const userFound = await User.findById(req.userId).select('-password');
         if (!userFound) return res.status(400).json({ message: 'User Not Found' });
-        const transportInfoStatus = {};
+        let transportInfoStatus = {};
         for (const [key, value] of Object.entries(userFound.transportInfo)) {
             transportInfoStatus[key] = value? true : false;
         }
+        transportInfoStatus= {...transportInfoStatus, vehicle: userFound.transportInfo.vehicle, registrationPlate:userFound.transportInfo.registrationPlate }
         res.status(200).json({ message: 'Data successfully obtained', transportInfoStatus });
     } catch (error) {
         res.status(error.code || 500).json({ message: error.message })
