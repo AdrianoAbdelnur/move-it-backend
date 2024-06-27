@@ -47,11 +47,15 @@ const UserPostSchema = new Schema({
             ref: 'Offer'
         },
     ],
+    offerSelected: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Offer'
+    },
     createAt: {
         type: Date,
         default: Date.now(),
     },
-    isDelete: {
+    isDeleted: {
         type: Boolean,
         default: false,
     },
