@@ -33,6 +33,24 @@ const UserSchema = new Schema({
         type: Boolean,
         default: false
     },
+    review: {
+        reviewsQuantity: {
+            type: Number,
+            default: 0
+        },
+        review: {
+            type: String
+        },
+        punctualityRating: {
+            type: Number
+        },
+        comunicationRating: {
+            type: Number
+        },
+        generalServiceRating: {
+            type: Number
+        }
+    },
     transportInfo: {
         vehicle: {
             type: String    

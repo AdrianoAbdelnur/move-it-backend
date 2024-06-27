@@ -12,6 +12,10 @@ const OfferSchema = new Schema({
     price: {
         type: Number
     },
+    offerSelected: {
+        type: Boolean,
+        default: false
+},
     date: {
         type: Date
     },
@@ -19,7 +23,7 @@ const OfferSchema = new Schema({
         type: Date,
         default: Date.now(),
     },
-    isDelete: {
+    isDeleted: {
         type: Boolean,
         default: false,
     },

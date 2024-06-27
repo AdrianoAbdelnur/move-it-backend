@@ -1,8 +1,10 @@
 const express = require("express");
-const { addOffer, getMyOffers } = require("../controllers/offer");
+const { addOffer, getOffersForMyPost, deleteOffer } = require("../controllers/offer");
 const router = express.Router();
 
 router.post('/addOffer', addOffer)
-router.get('/myOffers/:id', getMyOffers )
+router.get('/getOffersForMyPost/:id', getOffersForMyPost )
+router.patch('/deleteOffer/:id', deleteOffer )
+
 
 module.exports = router; 
