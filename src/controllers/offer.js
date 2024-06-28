@@ -21,7 +21,7 @@ const getOffersForMyPost =  async (req, res) => {
         const {id} = req.params
         const myOffers = await Offer.find({post: id}).populate({
             path: 'owner',
-            select: '_id given_name family_name'
+            select: '_id given_name family_name reviews'
           })
         res.status(200).json({message: 'Offers found succesfully', myOffers})
     } catch (error) {
