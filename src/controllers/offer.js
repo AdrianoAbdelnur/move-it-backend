@@ -40,9 +40,22 @@ const getOffersForMyPost =  async (req, res) => {
     }
 };
 
+const selectOffer = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const offerFound = await Offer.findByIdAndUpdate(id, {offerSelected: true}, {new:true})
+        if (offerFound) {
+            res.status(200).json({ message: 'Offer selected.', offerFound });
+        }
+    } catch (error) {
+        res.status(error.code || 500).json({ message: error.message })
+    }
+};
+
 
 module.exports = {
     addOffer,
     getOffersForMyPost,
-    deleteOffer
+    deleteOffer,
+    selectOffer
 }

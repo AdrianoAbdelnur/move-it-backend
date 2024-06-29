@@ -59,10 +59,26 @@ const addNewOffer =  async (req, res) => {
     }
 }
 
+const selectOffer = async(req, res) => {
+    try {
+        const {postId, offerSelected} = req.body
+        console.log(postId, offerSelected)
+        const postFound = await UserPost.findByIdAndUpdate(postId, {offerSelected}, {new:true})
+        console.log(postFound)
+        if (postFound) {
+            res.status(200).json({message: 'Offer selected', postFound})
+        }    
+    } catch (error) {
+        res.status(error.code || 500).json({message : error.message})
+    }
+    
+}
+
 module.exports = {
     addPost,
     getAllPosts,
     getMyPosts,
     getPendingPosts,
-    addNewOffer
+    addNewOffer,
+    selectOffer
 }
