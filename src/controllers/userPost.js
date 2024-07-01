@@ -29,6 +29,12 @@ const getMyPosts =  async (req, res) => {
               path: 'owner',
               select: 'given_name'
             }
+          }).populate({
+            path: 'offerSelected',
+            populate: {
+              path: 'owner',
+              select: 'given_name'
+            }
           });
         res.status(200).json({message: 'Posts found succesfully', myPost})
     } catch (error) {
@@ -63,8 +69,7 @@ const selectOffer = async(req, res) => {
     try {
         const {postId, offerSelected} = req.body
         console.log(postId, offerSelected)
-        const postFound = await UserPost.findByIdAndUpdate(postId, {offerSelected}, {new:true})
-        console.log(postFound)
+        const postFound = await UserPost.findByIdAndUpdate(postId, {offerSelected, status: "offerSelected"}, {new:true}).populate("offerSelected")
         if (postFound) {
             res.status(200).json({message: 'Offer selected', postFound})
         }    

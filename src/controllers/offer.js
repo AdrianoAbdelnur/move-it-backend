@@ -43,7 +43,7 @@ const getOffersForMyPost =  async (req, res) => {
 const selectOffer = async (req, res) => {
     try {
         const { id } = req.params;
-        const offerFound = await Offer.findByIdAndUpdate(id, {offerSelected: true}, {new:true})
+        const offerFound = await Offer.findByIdAndUpdate(id, {status: "offerSelected"}, {new:true})
         if (offerFound) {
             res.status(200).json({ message: 'Offer selected.', offerFound });
         }
