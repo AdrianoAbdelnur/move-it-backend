@@ -12,10 +12,6 @@ const OfferSchema = new Schema({
     price: {
         type: Number
     },
-    offerSelected: {
-        type: Boolean,
-        default: false
-},
     date: {
         type: Date
     },
@@ -26,6 +22,10 @@ const OfferSchema = new Schema({
     isDeleted: {
         type: Boolean,
         default: false,
+    },
+    status: {
+        type: String,
+        default: "Pending"
     },
 },{
     versionKey: false
