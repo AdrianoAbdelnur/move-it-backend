@@ -44,7 +44,8 @@ const getMyPosts =  async (req, res) => {
 
 const getPendingPosts =  async (req, res) => {
     try {
-        const pendingPost = await UserPost.find({status: "Pending"}).populate("owner").populate({
+        const statuses = ["Pending", "newOffers", "offersSeen"];
+        const pendingPost = await UserPost.find({status: {$in: statuses} }).populate("owner").populate({
             path: "offers",
             select: "_id",
             populate: {
