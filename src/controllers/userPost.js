@@ -64,9 +64,20 @@ const addNewOffer =  async (req, res) => {
         const postFound = await UserPost.findById(postId);
         if (postFound) {
             const newOffersList = [...postFound.offers, newOfferId]
-            const newPost = await UserPost.findByIdAndUpdate(postId, {offers: newOffersList}, {new: true})
+            const newPost = await UserPost.findByIdAndUpdate(postId, {offers: newOffersList, status: "newOffers"}, {new: true})
             res.status(200).json({message: 'Offer sent succesfully', newPost})
         }
+    } catch (error) {
+        res.status(error.code || 500).json({message : error.message})
+    }
+}
+
+const modifyStatus =  async (req, res) => {
+    try {
+        const {postId, newStatus}= req.body
+        const newPost = await UserPost.findByIdAndUpdate(postId, {status: newStatus}, {new: true})
+        res.status(200).json({message: 'Post updated succesfully', newPost})
+       
     } catch (error) {
         res.status(error.code || 500).json({message : error.message})
     }
@@ -98,5 +109,6 @@ module.exports = {
     getMyPosts,
     getPendingPosts,
     addNewOffer,
-    selectOffer
+    selectOffer,
+    modifyStatus
 }
