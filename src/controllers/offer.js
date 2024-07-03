@@ -52,10 +52,30 @@ const selectOffer = async (req, res) => {
     }
 };
 
+const getMyAceptedOffers = async (req, res) => {
+    try {
+        const { ownerId } = req.body
+        const offersFound = await Offer.find({ owner: ownerId, status: "offerSelected" }).populate({
+            path: 'post',
+            populate: {
+                path: 'owner',
+                model: 'User',
+                select: 'given_name family_name review'
+            }
+        })
+        if (offersFound) {
+            res.status(200).json({ message: 'Your accepted offers were successfully retrieved.', offersFound });
+        }
+    } catch (error) {
+        res.status(error.code || 500).json({ message: error.message })
+    }
+};
+
 
 module.exports = {
     addOffer,
     getOffersForMyPost,
     deleteOffer,
-    selectOffer
+    selectOffer,
+    getMyAceptedOffers
 }
