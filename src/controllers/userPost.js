@@ -33,7 +33,7 @@ const getMyPosts =  async (req, res) => {
             path: 'offerSelected',
             populate: {
               path: 'owner',
-              select: 'given_name'
+              select: 'given_name review'
             }
           });
         res.status(200).json({message: 'Posts found succesfully', myPost})
