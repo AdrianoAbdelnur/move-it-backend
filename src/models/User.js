@@ -38,9 +38,11 @@ const UserSchema = new Schema({
             type: Number,
             default: 0
         },
-        review: {
+        review: [
+            {
             type: String
-        },
+            }
+        ],
         punctualityRating: {
             type: Number
         },
