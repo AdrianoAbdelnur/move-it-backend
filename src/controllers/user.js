@@ -162,6 +162,43 @@ const verifyTransportFields = async(req,res) => {
     }
 }
 
+const updateReviews = async(req,res) => {
+    try {
+        const userId = req.params.id;
+        const { punctualityRating, comunicationRating, generalServiceRating, review } = req.body;
+        const user = await User.findById(userId).select('-password -transportInfo.generalImg -transportInfo.policeCheckPdf -transportInfo.cargoAreaImg -transportInfo.licenseFrontImg -transportInfo.licenseBackImg --transportInfo.profilePhotoImg -transportInfo.profilePhotoImg' );
+        if (!user) {
+          return res.status(404).json({ message: 'User not found' });
+        }
+        if (user.review.punctualityRating === undefined) user.review.punctualityRating = 0;
+        if (user.review.comunicationRating === undefined) user.review.comunicationRating = 0;
+        if (user.review.generalServiceRating === undefined) user.review.generalServiceRating = 0;
+
+        const reviewsQuantity = user.review.reviewsQuantity || 0;
+        if (punctualityRating !== undefined) {
+            const totalPunctuality = (user.review.punctualityRating * user.review.reviewsQuantity) + punctualityRating;
+            user.review.punctualityRating = totalPunctuality / (user.review.reviewsQuantity + 1);
+            console.log("puntualidad", user.review.punctualityRating, user.review.reviewsQuantity, punctualityRating , totalPunctuality)
+        }
+          if (comunicationRating !== undefined) {
+            const totalComunication = (user.review.comunicationRating * user.review.reviewsQuantity) + comunicationRating;
+            user.review.comunicationRating = totalComunication / (user.review.reviewsQuantity + 1);
+          }
+          if (generalServiceRating !== undefined) {
+            const totalGeneralService = (user.review.generalServiceRating * user.review.reviewsQuantity) + generalServiceRating;
+            user.review.generalServiceRating = totalGeneralService / (user.review.reviewsQuantity + 1);
+          }
+          if (review !== undefined) user.review.review = [...user.review.review,review];
+          user.review.reviewsQuantity += 1;
+          
+          await user.save();
+      
+          res.status(200).json({ message: 'Reviews updated and averaged successfully', user });
+    } catch (error) {
+        res.status(error.code || 500).json({ message: error.message })
+    }
+}
+
 module.exports = {
     registerUser,
     loginUser,
@@ -171,5 +208,6 @@ module.exports = {
     updateUser,
     loginStatus,
     updateFields,
-    verifyTransportFields
+    verifyTransportFields,
+    updateReviews
 }
