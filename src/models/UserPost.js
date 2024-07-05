@@ -25,11 +25,33 @@ const UserPostSchema = new Schema({
     directions: { 
         from: {
             description: {type: String },
-            place_id: {type: String}
+            place_id: {type: String},
+            location: {
+                lat: { type: Number },
+                lng: { type: Number }
+            },
+            address_components: [
+                {
+                    long_name: { type: String },
+                    short_name: { type: String },
+                    types: [{ type: String }]
+                }
+            ]
         }, 
         to: {
             description: {type: String },
-            place_id: {type: String} 
+            place_id: {type: String},
+            location: {
+                lat: { type: Number },
+                lng: { type: Number }
+            },
+            address_components: [
+                {
+                    long_name: { type: String },
+                    short_name: { type: String },
+                    types: [{ type: String }]
+                }
+            ]
         } 
     },
     date: { 
