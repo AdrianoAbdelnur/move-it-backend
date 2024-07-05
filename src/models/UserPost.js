@@ -27,8 +27,8 @@ const UserPostSchema = new Schema({
             description: {type: String },
             place_id: {type: String},
             location: {
-                lat: { type: Number },
-                lng: { type: Number }
+                latitude: { type: Number },
+                longitude: { type: Number }
             },
             address_components: [
                 {
@@ -42,8 +42,8 @@ const UserPostSchema = new Schema({
             description: {type: String },
             place_id: {type: String},
             location: {
-                lat: { type: Number },
-                lng: { type: Number }
+                latitude: { type: Number },
+                longitude: { type: Number }
             },
             address_components: [
                 {
