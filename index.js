@@ -1,5 +1,5 @@
 const express = require("express");
-const mongoose = require('mongoose')
+const mongoose = require('mongoose');
 const http = require('http');
 const socketIo = require('socket.io');
 const app = express();
@@ -29,42 +29,56 @@ app.use("/api", require("./src/routes"));
 
 const server = http.createServer(app);
 
-// Integrar Socket.IO con el servidor HTTP
 const io = socketIo(server, {
     cors: {
-        cors: {
-            origin: '*',
-            methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'PATCH', 'DELETE']
-        }
+        origin: '*',
+        methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'PATCH', 'DELETE']
     }
 });
 
-const usuarios = {};
+const users = {};
 
 io.on('connection', (socket) => {
-    console.log('Un usuario se ha conectado con ID:', socket.id);
+    console.log('A user has connected with ID:', socket.id);
 
-    socket.on('nuevoUsuario',(nombreUsuario)=> {
-        usuarios[nombreUsuario] = socket.id;
-        console.log(`${nombreUsuario} se ha conectado con ID ${socket.id}`);
-        console.log(usuarios)
-    } )
-
-    // Ejemplo de evento de mensaje
-    socket.on('mensaje', (msg) => {
-        console.log('Mensaje recibido:', msg);
-        io.emit('mensaje', msg); // Reenvía el mensaje a todos los clientes
+    socket.on('newUser', (username) => {
+        users[username] = socket.id;
+        console.log(`${username} has connected with ID ${socket.id}`);
+        console.log(users);
     });
 
-    // Manejo de desconexión
+    socket.on('message', (msg) => {
+        console.log('Message received:', msg);
+        io.emit('message', msg);
+    });
+
+    socket.on('privateMessage', ({ message, recipient }) => {
+        const recipientSocketId = users[recipient];
+        if (recipientSocketId) {
+            io.to(recipientSocketId).emit('privateMessage', {
+                message,
+                sender: socket.id
+            });
+            console.log(`Private message from ${socket.id} to ${recipientSocketId}: ${message}`);
+        } else {
+            console.log(`User ${recipient} is not connected`);
+        }
+    });
+
     socket.on('disconnect', () => {
-        console.log('Usuario desconectado:', socket.id);
+        console.log('User disconnected:', socket.id);
+        for (let user in users) {
+            if (users[user] === socket.id) {
+                delete users[user];
+                break;
+            }
+        }
     });
 });
 
 mongoose.connect(process.env.DB_URL).then(() => {
-    console.log("conectado a mongodb");
+    console.log("Connected to MongoDB");
     server.listen(process.env.API_PORT, () => {
-        console.log(`aplicacion escuchando en puerto ${process.env.API_PORT}`);
+        console.log(`Application listening on port ${process.env.API_PORT}`);
     });
 });
