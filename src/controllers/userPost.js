@@ -107,7 +107,7 @@ const selectOffer = async(req, res) => {
 const addMessage = async(req, res) => {
     try {
         const { postId } = req.params;
-        const { sender, message } = req.body;
+        const { sender, text } = req.body;
 
         const userPost = await UserPost.findById(postId);
         if (!userPost) {
@@ -115,7 +115,7 @@ const addMessage = async(req, res) => {
         }
         const newMessage = {
             sender,
-            message,
+            text,
         };
         userPost.chatMessages = [newMessage, ...userPost.chatMessages];
         await userPost.save();
