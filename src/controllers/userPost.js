@@ -111,7 +111,7 @@ const addMessage = async(req, res) => {
 
         const userPost = await UserPost.findById(postId);
         if (!userPost) {
-            return res.status(404).json({ error: 'UserPost not found' });
+            return res.status(404).json({ error: 'UserPost not found'});
         }
         const newMessage = {
             sender,
@@ -119,7 +119,8 @@ const addMessage = async(req, res) => {
         };
         userPost.chatMessages = [newMessage, ...userPost.chatMessages];
         await userPost.save();
-        res.status(200).json({message: 'Message successfully added', userPost})
+        const lastMessage = userPost.chatMessages[0];
+        res.status(200).json({message: 'Message successfully added', message: lastMessage  })
     } catch (error) {
         res.status(error.code || 500).json({message : error.message})
     }
