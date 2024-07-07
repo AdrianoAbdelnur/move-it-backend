@@ -77,6 +77,25 @@ const UserPostSchema = new Schema({
         type: Date,
         default: Date.now(),
     },
+    chatMessages: [
+        {
+            userId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'User'
+            },
+            TransportId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'User'
+            },
+            message: {
+                type: String
+            },
+            date: {
+                type:Date, 
+                default: Date.now()
+            },
+        }
+    ],
     isDeleted: {
         type: Boolean,
         default: false,

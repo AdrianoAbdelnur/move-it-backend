@@ -104,6 +104,29 @@ const selectOffer = async(req, res) => {
     
 }
 
+const addMessage = async(req, res) => {
+    try {
+        const { postId } = req.params;
+        const { userId, TransportId, message } = req.body;
+
+        const userPost = await UserPost.findById(postId);
+        if (!userPost) {
+            return res.status(404).json({ error: 'UserPost not found' });
+        }
+        const newMessage = {
+            userId,
+            TransportId,
+            message,
+        };
+        userPost.chatMessages = [newMessage, ...userPost.chatMessages];
+        await userPost.save();
+        res.status(200).json({message: 'Message successfully added', userPost})
+    } catch (error) {
+        res.status(error.code || 500).json({message : error.message})
+    }
+    
+}
+
 module.exports = {
     addPost,
     getAllPosts,
@@ -111,5 +134,6 @@ module.exports = {
     getPendingPosts,
     addNewOffer,
     selectOffer,
-    modifyStatus
+    modifyStatus,
+    addMessage
 }
