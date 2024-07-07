@@ -79,11 +79,7 @@ const UserPostSchema = new Schema({
     },
     chatMessages: [
         {
-            userId: {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: 'User'
-            },
-            TransportId: {
+            sender: {
                 type: mongoose.Schema.Types.ObjectId,
                 ref: 'User'
             },
