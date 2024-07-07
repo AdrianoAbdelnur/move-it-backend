@@ -107,15 +107,14 @@ const selectOffer = async(req, res) => {
 const addMessage = async(req, res) => {
     try {
         const { postId } = req.params;
-        const { userId, TransportId, message } = req.body;
+        const { sender, message } = req.body;
 
         const userPost = await UserPost.findById(postId);
         if (!userPost) {
             return res.status(404).json({ error: 'UserPost not found' });
         }
         const newMessage = {
-            userId,
-            TransportId,
+            sender,
             message,
         };
         userPost.chatMessages = [newMessage, ...userPost.chatMessages];
