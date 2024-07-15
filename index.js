@@ -39,10 +39,10 @@ const io = socketIo(server, {
 const users = {};
 
 io.on('connection', (socket) => {
-    console.log('A user has connected with ID:', socket.id);
 
     socket.on('newUser', (username) => {
         users[username] = socket.id;
+        socket.userName = username;
         console.log(`${username} has connected with ID ${socket.id}`);
         console.log(users);
     });
@@ -57,7 +57,7 @@ io.on('connection', (socket) => {
         if (recipientSocketId) {
             io.to(recipientSocketId).emit('privateMessage', {
                 message,
-                sender: socket.id
+                sender: socket.userName
             });
             console.log(`Private message from ${socket.id} to ${recipientSocketId}: ${message}`);
         } else {
