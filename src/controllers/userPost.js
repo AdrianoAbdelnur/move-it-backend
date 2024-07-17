@@ -44,8 +44,7 @@ const getMyPosts =  async (req, res) => {
 
 const getPendingPosts =  async (req, res) => {
     try {
-        const statuses = ["Pending", "newOffers", "offersSeen"];
-        const pendingPost = await UserPost.find({status: {$in: statuses} }).populate("owner").populate({
+        const pendingPost = await UserPost.find({"status.mainStatus": "pending" }).populate("owner").populate({
             path: "offers",
             select: "_id",
             populate: {
@@ -64,8 +63,7 @@ const addNewOffer =  async (req, res) => {
         const {postId, newOfferId} = req.body
         const postFound = await UserPost.findById(postId);
         if (postFound) {
-            const newOffersList = [...postFound.offers, newOfferId]
-            const newPost = await UserPost.findByIdAndUpdate(postId, {offers: newOffersList, status: "newOffers"}, {new: true})
+            const newPost = await UserPost.findByIdAndUpdate(postId, {$push: { offers: newOfferId }, "status.newOffers": true}, {new: true})
             res.status(200).json({message: 'Offer sent succesfully', newPost})
         }
     } catch (error) {
@@ -76,7 +74,7 @@ const addNewOffer =  async (req, res) => {
 const modifyStatus =  async (req, res) => {
     try {
         const {postId, newStatus}= req.body
-        const newPost = await UserPost.findByIdAndUpdate(postId, {status: newStatus}, {new: true})
+        const newPost = await UserPost.findByIdAndUpdate(postId, { $set: { status: { ...newStatus } } }, {new: true})
         res.status(200).json({message: 'Post updated succesfully', newPost})
        
     } catch (error) {
@@ -88,7 +86,7 @@ const selectOffer = async(req, res) => {
     try {
         const {postId, offerSelected} = req.body
         console.log(postId, offerSelected)
-        const postFound = await UserPost.findByIdAndUpdate(postId, {offerSelected, status: "offerSelected"}, {new:true}).populate({
+        const postFound = await UserPost.findByIdAndUpdate(postId, {offerSelected, "status.mainStatus": "offerSelected"}, {new:true}).populate({
             path: 'offerSelected',
             populate: {
               path: 'owner',
@@ -118,6 +116,9 @@ const addMessage = async(req, res) => {
             text,
         };
         userPost.chatMessages = [newMessage, ...userPost.chatMessages];
+        if (sender=== userPost.owner) {
+            userPost.status.messagesStatus.newUserMessage = true;
+        } else userPost.status.messagesStatus.newTransportMessage= true;
         await userPost.save();
         const lastMessage = userPost.chatMessages[0];
         res.status(200).json({message: 'Message successfully added', message: lastMessage  })
