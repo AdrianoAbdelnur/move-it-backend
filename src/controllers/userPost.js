@@ -116,7 +116,7 @@ const addMessage = async(req, res) => {
             text,
         };
         userPost.chatMessages = [newMessage, ...userPost.chatMessages];
-        if (sender=== userPost.owner) {
+        if (sender == userPost.owner) {
             userPost.status.messagesStatus.newUserMessage = true;
         } else userPost.status.messagesStatus.newTransportMessage= true;
         await userPost.save();
