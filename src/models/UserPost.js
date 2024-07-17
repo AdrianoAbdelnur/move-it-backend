@@ -56,13 +56,28 @@ const UserPostSchema = new Schema({
     },
     date: { 
        type: Date
-    }
-    ,
+    },
     extraComents: {type: String },
     status: {
-        type: String,
-        default: "Pending"
-    },
+            mainStatus: {
+                type: String,
+                default: "pending"
+            },
+            newOffers: {
+                type: Boolean,
+                default: false
+            },
+            messagesStatus: {
+                newUserMessage: {
+                    type: Boolean,
+                    default: false
+                },
+                newTransportMessage: {
+                    type: Boolean,
+                    default: false
+                }
+            }
+        },
     offers: [
         {
             type: mongoose.Schema.Types.ObjectId,
