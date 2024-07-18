@@ -52,15 +52,15 @@ io.on('connection', (socket) => {
         io.emit('message', msg);
     });
 
-    socket.on('privateMessage', ({ message, recipient, postId }) => {
+    socket.on('privateMessage', ({ text, recipient, postId }) => {
         const recipientSocketId = users[recipient];
         if (recipientSocketId) {
             io.to(recipientSocketId).emit('privateMessage', {
-                message,
+                text,
                 sender: socket.userName,
                 postId
             });
-            console.log(`Private message from ${socket.id} to ${recipientSocketId}: ${message}`);
+            console.log(`Private message from ${socket.id} to ${recipientSocketId}: ${text}`);
         } else {
             console.log(`User ${recipient} is not connected`);
         }
