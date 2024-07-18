@@ -52,12 +52,13 @@ io.on('connection', (socket) => {
         io.emit('message', msg);
     });
 
-    socket.on('privateMessage', ({ message, recipient }) => {
+    socket.on('privateMessage', ({ message, recipient, postId }) => {
         const recipientSocketId = users[recipient];
         if (recipientSocketId) {
             io.to(recipientSocketId).emit('privateMessage', {
                 message,
-                sender: socket.userName
+                sender: socket.userName,
+                postId
             });
             console.log(`Private message from ${socket.id} to ${recipientSocketId}: ${message}`);
         } else {
