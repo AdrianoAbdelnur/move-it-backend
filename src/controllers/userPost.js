@@ -74,7 +74,19 @@ const addNewOffer =  async (req, res) => {
 const modifyStatus =  async (req, res) => {
     try {
         const {postId, newStatus}= req.body
-        const newPost = await UserPost.findByIdAndUpdate(postId, { $set: { status: { ...newStatus } } }, {new: true})
+        const newPost = await UserPost.findByIdAndUpdate(postId, { $set: { status: { ...newStatus } } }, {new: true}).populate({
+            path: 'offers',
+            populate: {
+              path: 'owner',
+              select: 'given_name'
+            }
+          }).populate({
+            path: 'offerSelected',
+            populate: {
+              path: 'owner',
+              select: 'given_name review'
+            }
+          });
         res.status(200).json({message: 'Post updated succesfully', newPost})
        
     } catch (error) {
