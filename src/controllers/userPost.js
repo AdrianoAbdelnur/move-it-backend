@@ -58,6 +58,22 @@ const getPendingPosts =  async (req, res) => {
     }
 }
 
+
+const getMySelectedPosts =  async (req, res) => {
+    const { ownerId } = req.params
+    try {
+        const postsSelectedOffers = await UserPost.find({ offerSelected: { $ne: null } }).populate('offerSelected')
+        if (postsSelectedOffers) {
+            const yourOfferSelectedPosts = postsSelectedOffers.filter(post => 
+                 post.offerSelected.owner == ownerId
+              );
+              res.status(200).json({message: 'Your offer selected Posts found succesfully',yourOfferSelectedPosts })
+            }
+    } catch (error) {
+        res.status(error.code || 500).json({message : error.message})
+    }
+}
+
 const addNewOffer =  async (req, res) => {
     try {
         const {postId, newOfferId} = req.body
@@ -148,5 +164,6 @@ module.exports = {
     addNewOffer,
     selectOffer,
     modifyStatus,
-    addMessage
+    addMessage,
+    getMySelectedPosts
 }
