@@ -72,7 +72,7 @@ const getMySelectedPosts =  async (req, res) => {
         });
         if (postsSelectedOffers) {
             const yourOfferSelectedPosts = postsSelectedOffers.filter(post => 
-                 post.offerSelected.owner == ownerId
+                 post.offerSelected.owner._id == ownerId
               );
               res.status(200).json({message: 'Your offer selected Posts found succesfully',yourOfferSelectedPosts })
             }
