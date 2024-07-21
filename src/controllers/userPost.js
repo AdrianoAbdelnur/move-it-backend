@@ -62,7 +62,14 @@ const getPendingPosts =  async (req, res) => {
 const getMySelectedPosts =  async (req, res) => {
     const { ownerId } = req.params
     try {
-        const postsSelectedOffers = await UserPost.find({ offerSelected: { $ne: null } }).populate('offerSelected')
+        const postsSelectedOffers = await UserPost.find({ offerSelected: { $ne: null } }).populate({
+            path: 'offerSelected',
+            populate: {
+                path: 'owner',
+                model: 'User',
+                select: 'given_name'
+            }
+        });
         if (postsSelectedOffers) {
             const yourOfferSelectedPosts = postsSelectedOffers.filter(post => 
                  post.offerSelected.owner == ownerId
