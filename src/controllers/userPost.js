@@ -62,17 +62,15 @@ const getPendingPosts =  async (req, res) => {
 const getMySelectedPosts =  async (req, res) => {
     const { ownerId } = req.params
     try {
-        const postsSelectedOffers = await UserPost.find({ offerSelected: { $ne: null } }).populate({
-            path: 'offerSelected',
-            populate: {
-                path: 'owner',
-                model: 'User',
-                select: 'given_name'
-            }
+        const postsSelectedOffers = await UserPost.find({ offerSelected: { $ne: null } }).populate("offerSelected").populate({
+            path: 'owner',
+            model: 'User',
+            select: 'given_name'
         });
+        console.log(postsSelectedOffers)
         if (postsSelectedOffers) {
             const yourOfferSelectedPosts = postsSelectedOffers.filter(post => 
-                 post.offerSelected.owner._id == ownerId
+                 post.offerSelected.owner == ownerId
               );
               res.status(200).json({message: 'Your offer selected Posts found succesfully',yourOfferSelectedPosts })
             }
