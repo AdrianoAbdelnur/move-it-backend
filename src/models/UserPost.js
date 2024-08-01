@@ -1,62 +1,55 @@
 const {model, Schema, default: mongoose} = require("mongoose")
 
+const ItemDetailsSchema = new Schema({
+    description: { type: String },
+    itemsList: [
+      {
+        name: { type: String},
+        quantity: { type: Number },
+        details: {
+          description: String,
+          dimensions: {
+            length: String,
+            width: String,
+            height: String,
+            weight: String
+          }
+        }
+      }
+    ]
+  });
+
+const DirectionSchema = new Schema({
+    description: { type: String },
+    place_id: { type: String},
+    location: {
+      latitude: { type: Number },
+      longitude: { type: Number}
+    },
+    address_components: [
+      {
+        long_name: String,
+        short_name: String,
+        types: [String]
+      }
+    ]
+  });
+
 const UserPostSchema = new Schema({
     owner: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
     },
-    goodsType: {
-        type: String
-    },
-    dimensions: {
-        length: {
-            type: Number
-        },
-        width: {
-            type: Number
-        },
-        height: {
-            type: Number
-        },
-        weight: {
-            type: Number
-        },
-    },
-    directions: { 
-        from: {
-            description: {type: String },
-            place_id: {type: String},
-            location: {
-                latitude: { type: Number },
-                longitude: { type: Number }
-            },
-            address_components: [
-                {
-                    long_name: { type: String },
-                    short_name: { type: String },
-                    types: [{ type: String }]
-                }
-            ]
-        }, 
-        to: {
-            description: {type: String },
-            place_id: {type: String},
-            location: {
-                latitude: { type: Number },
-                longitude: { type: Number }
-            },
-            address_components: [
-                {
-                    long_name: { type: String },
-                    short_name: { type: String },
-                    types: [{ type: String }]
-                }
-            ]
-        } 
-    },
-    date: { 
-       type: Date
-    },
+    title: { type: String },
+    date: {
+        date: { type: Date },
+        timeDay: { type: String }
+      },
+    directions: [DirectionSchema],
+    itemsDetails: {
+        type: Map,
+        of: ItemDetailsSchema 
+      },
     extraComents: {type: String },
     status: {
             mainStatus: {
