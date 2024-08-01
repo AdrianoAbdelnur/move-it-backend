@@ -16,7 +16,8 @@ const ItemDetailsSchema = new Schema({
           }
         }
       }
-    ]
+    ],
+    photoItems: { type: String },
   });
 
 const DirectionSchema = new Schema({
