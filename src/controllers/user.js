@@ -162,6 +162,33 @@ const verifyTransportFields = async(req,res) => {
     }
 }
 
+const getImage = async(req,res) => {
+    const { userId, imageType } = req.params;
+    try {
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        let imageData;
+        switch (imageType) {
+            case "cargoAreaImg":
+                imageData = user.transportInfo.cargoAreaImg;
+                break;
+            case 'generalImg':
+                imageData = user.transportInfo.generalImg;
+                break;
+            default:
+                return res.status(400).json({ message: 'Invalid image type' });
+        }
+        if(imageData) {
+            res.status(200).json({ message: 'Image obtained', imageData });
+        }
+
+    } catch (error) {
+        
+    }
+}
+
 const updateReviews = async(req,res) => {
     try {
         const userId = req.params.id;
@@ -209,5 +236,6 @@ module.exports = {
     loginStatus,
     updateFields,
     verifyTransportFields,
-    updateReviews
+    updateReviews,
+    getImage
 }
