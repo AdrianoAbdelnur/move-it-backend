@@ -185,7 +185,7 @@ const getImage = async(req,res) => {
         }
 
     } catch (error) {
-        
+        res.status(error.code || 500).json({ message: error.message })
     }
 }
 
@@ -215,7 +215,7 @@ const updateReviews = async(req,res) => {
             const totalGeneralService = (user.review.generalServiceRating * user.review.reviewsQuantity) + generalServiceRating;
             user.review.generalServiceRating = totalGeneralService / (user.review.reviewsQuantity + 1);
           }
-          if (review !== undefined) user.review.review = [...user.review.review,review];
+          if (review !== undefined && review!=="") user.review.review = [review,...user.review.review];
           user.review.reviewsQuantity += 1;
           
           await user.save();
