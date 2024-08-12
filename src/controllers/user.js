@@ -102,7 +102,7 @@ const updateFields = async (req, res) => {
         const updatedUser = await User.findByIdAndUpdate(req.userId, { $set: updateFields }, { new: true }).select('-password' );
         let allFilled = true;
         for (const [key, value] of Object.entries(updatedUser.transportInfo)) {
-            if(!value && key !== 'profilePhotoImg') {
+            if(!value) {
                 allFilled = false
                 break
             }
@@ -176,6 +176,9 @@ const getImage = async(req,res) => {
                 break;
             case 'generalImg':
                 imageData = user.transportInfo.generalImg;
+                break;
+            case 'profilePhotoImg':
+                imageData = user.transportInfo.profilePhotoImg;
                 break;
             default:
                 return res.status(400).json({ message: 'Invalid image type' });
