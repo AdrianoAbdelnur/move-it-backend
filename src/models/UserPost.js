@@ -2,6 +2,8 @@ const {model, Schema, default: mongoose} = require("mongoose")
 
 const ItemDetailsSchema = new Schema({
     description: { type: String },
+    duration: {type: String},
+    distance: {type: String},
     itemsList: [
       {
         name: { type: String},
