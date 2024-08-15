@@ -3,9 +3,18 @@ const UserPost = require("../models/UserPost");
 
 const addPost = async(req, res) => {
     try {
-        const newPost = new UserPost(req.body)
-        await newPost.save();
-        res.status(200).json({message: 'Post added successfully', newPost})
+        const { _id, ...postData } = req.body;
+        let newPost;
+        if (_id) {
+            newPost = await UserPost.findByIdAndUpdate(_id, postData, {
+              new: true,        
+              upsert: true
+            });
+          } else {
+            newPost = new UserPost(req.body)
+            await newPost.save();
+        }
+    res.status(200).json({message: 'Post added successfully', newPost})
     } catch (error) {
         res.status(error.code || 500).json({message : error.message})
     }
