@@ -71,6 +71,10 @@ const UserPostSchema = new Schema({
               type: Boolean,
               default: false
             },
+            userCancelled: {
+              type: Boolean,
+              default: false
+            },
             messagesStatus: {
                 newUserMessage: {
                     type: Boolean,
