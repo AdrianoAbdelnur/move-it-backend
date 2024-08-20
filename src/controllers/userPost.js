@@ -42,11 +42,9 @@ const getMyPosts =  async (req, res) => {
               select: 'given_name review'
             }
           }).populate({
-            path: 'transportCancel',
-            populate:{
-                path: 'owner',
-                select: 'given_name review'
-            }
+            path: 'transportCancel',    
+            select: 'given_name'
+          
           })
         res.status(200).json({message: 'Posts found succesfully', myPost})
     } catch (error) {
