@@ -63,6 +63,14 @@ const UserPostSchema = new Schema({
                 type: Boolean,
                 default: false
             },
+            offerAcepted: {
+                type: Boolean,
+                default: false
+            },
+            transportCancelled: {
+              type: Boolean,
+              default: false
+            },
             messagesStatus: {
                 newUserMessage: {
                     type: Boolean,
@@ -78,6 +86,12 @@ const UserPostSchema = new Schema({
         {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Offer'
+        },
+    ],
+    transportCancel: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
         },
     ],
     offerSelected: {
