@@ -129,7 +129,7 @@ const selectOffer = async(req, res) => {
     try {
         const {postId, offerSelected} = req.body
         console.log(postId, offerSelected)
-        const postFound = await UserPost.findByIdAndUpdate(postId, {offerSelected, "status.mainStatus": "offerSelected"}, {new:true}).populate({
+        const postFound = await UserPost.findByIdAndUpdate(postId, {offerSelected, "status.mainStatus": "offerSelected", "status.offerAcepted": true}, {new:true}).populate({
             path: 'offerSelected',
             populate: {
               path: 'owner',
