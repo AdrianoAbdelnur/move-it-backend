@@ -33,7 +33,7 @@ const getMyPosts =  async (req, res) => {
             path: 'offers',
             populate: {
               path: 'owner',
-              select: 'given_name'
+              select: 'given_name review'
             }
           }).populate({
             path: 'offerSelected',
