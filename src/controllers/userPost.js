@@ -20,7 +20,6 @@ const addPost = async(req, res) => {
           }).populate({
             path: 'transportCancel',    
             select: 'given_name'
-          
           })
            res.status(200).json({message: 'Post added successfully', newPost: updatedPost})
         } else {
@@ -125,7 +124,7 @@ const modifyStatus =  async (req, res) => {
             path: 'offers',
             populate: {
               path: 'owner',
-              select: 'given_name'
+              select: 'given_name review'
             }
           }).populate({
             path: 'offerSelected',
