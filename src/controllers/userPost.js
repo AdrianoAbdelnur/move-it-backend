@@ -5,7 +5,23 @@ const addPost = async(req, res) => {
     try {
         const post = req.body
         if (post._id) {
-           const updatedPost = await UserPost.findByIdAndUpdate(post._id, post, {new:true})
+           const updatedPost = await UserPost.findByIdAndUpdate(post._id, post, {new:true}).populate({
+            path: 'offers',
+            populate: {
+              path: 'owner',
+              select: 'given_name review'
+            }
+          }).populate({
+            path: 'offerSelected',
+            populate: {
+              path: 'owner',
+              select: 'given_name review'
+            }
+          }).populate({
+            path: 'transportCancel',    
+            select: 'given_name'
+          
+          })
            res.status(200).json({message: 'Post added successfully', newPost: updatedPost})
         } else {
             const newPost = new UserPost(post);
