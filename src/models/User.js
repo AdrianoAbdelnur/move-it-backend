@@ -1,4 +1,4 @@
-const {model, Schema} = require("mongoose");
+const {model, Schema, default: mongoose} = require("mongoose");
 
 const UserSchema = new Schema({
     given_name: {
@@ -33,6 +33,21 @@ const UserSchema = new Schema({
         type: Boolean,
         default: false
     },
+    cancelledServices: [
+        {
+            serviceId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'UserPost'
+            },
+            cancelledDate: {
+                type: Date,
+            },
+            refunded: {
+                type: Boolean,
+                default: null
+            }
+        }
+    ],
     review: {
         reviewsQuantity: {
             type: Number,
