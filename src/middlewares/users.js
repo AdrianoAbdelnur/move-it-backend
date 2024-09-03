@@ -23,7 +23,8 @@ const verifyLoginFields = () => {
 const checkCancellations = async(req, res,next)=> {
     try {
         const {userID} = req.params
-        const {serviceId, cancelledDate, refunded} = req.body;    
+        const {serviceId, cancelledDate, refunded} = req.body;
+        console.log(req.params, req.body)    
         const user = await User.findById(userID);
         if(!user) {
             return res.status(404).json({message: "user not found"})
