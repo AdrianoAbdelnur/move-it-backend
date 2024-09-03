@@ -48,6 +48,18 @@ const UserSchema = new Schema({
             }
         }
     ],
+    accountSuspended: [{
+        suspendedDate: {
+            type:Date,
+            default: Date.now(),
+        },
+        reason: {
+            type: String
+        },
+        suspensionEndDate: {
+            type: Date
+        }
+    }],
     review: {
         reviewsQuantity: {
             type: Number,
