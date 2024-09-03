@@ -61,7 +61,6 @@ const checkCancellations = async(req, res,next)=> {
                        serviceCancelledDate >= lastSuspensionStartDate;
             });
             if (recentCancellations.length >= 3) {
-                user.authorizedTransport = false;
                 const threeSuspensions = user.accountSuspended.filter(suspension => 
                     suspension.reason === 'More than 3 cancellations in 3 months'
                 );
