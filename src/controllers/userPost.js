@@ -59,7 +59,6 @@ const getMyPosts =  async (req, res) => {
           }).populate({
             path: 'transportCancel',    
             select: 'given_name'
-          
           })
         res.status(200).json({message: 'Posts found succesfully', myPost})
     } catch (error) {
@@ -76,7 +75,10 @@ const getPendingPosts =  async (req, res) => {
                 path: "owner",
                 select: "given_name _id"
             }
-        });
+        }).populate({
+            path: 'transportCancel',    
+            select: 'given_name'
+          });
         res.status(200).json({message: 'Pending Posts found succesfully', pendingPost})
     } catch (error) {
         res.status(error.code || 500).json({message : error.message})
