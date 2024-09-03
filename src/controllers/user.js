@@ -231,21 +231,6 @@ const updateReviews = async(req,res) => {
 
 const addCancelled = async(req,res) => {
     try {
-        const { userId } = req.params;
-        const {serviceId, cancelledDate, refunded} = req.body;
-        const user= await User.findById(userId)
-        if(!user) {
-            return res.status(404).json({message: "user not found"})
-        }
-        user.cancelledServices = [
-            ...user.cancelledServices,
-            {
-                service: serviceId,
-                cancelledDate: cancelledDate,
-                refunded: refunded
-            }
-        ];
-        await user.save();
         res.status(200).json({ message: "Cancellation info added successfully" });       
     } catch (error) {
         res.status(error.code || 500).json({ message: error.message })

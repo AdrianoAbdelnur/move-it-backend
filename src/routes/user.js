@@ -1,7 +1,7 @@
 const express = require("express");
 const { registerUser, loginUser, getUser, getAllUsers, verifyTransportFields, updateFields, updateReviews, getImage, addCancelled } = require("../controllers/user");
 const { validate } = require("../helpers/validate");
-const { verifyRegisterFields, verifyLoginFields } = require("../middlewares/users");
+const { verifyRegisterFields, verifyLoginFields, checkCancellations } = require("../middlewares/users");
 const { decodeToken, adminRequiredValidation } = require("../middlewares/auth");
 const router = express.Router();
 
@@ -17,6 +17,6 @@ router.get('/all', decodeToken, adminRequiredValidation, getAllUsers);
 
 router.get('/getImage/:userId/:imageType', getImage);
 
-router.patch('/addCancelation/:userId', addCancelled);
+router.patch('/addCancelation/:userId',checkCancellations, addCancelled);
 
 module.exports = router; 
