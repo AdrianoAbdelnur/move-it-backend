@@ -24,7 +24,6 @@ const checkCancellations = async(req, res,next)=> {
     try {
         const {userId} = req.params
         const {serviceId, cancelledDate, refunded} = req.body; 
-        console.log(userId, serviceId, cancelledDate,)  
         const user = await User.findById(userId);
         if(!user) {
             return res.status(404).json({message: "user not found"})
@@ -37,7 +36,6 @@ const checkCancellations = async(req, res,next)=> {
                 refunded: refunded
             }
         ];
-        console.log(user)
         if(user.role === "transport") {
             const currentDate = new Date()
             const threeMonthAgo = new Date()
@@ -61,7 +59,6 @@ const checkCancellations = async(req, res,next)=> {
                        serviceCancelledDate <= currentDate &&
                        serviceCancelledDate >= lastSuspensionStartDate;
             });
-            console.log("RECENT CANCEL",recentCancellations)
             if (recentCancellations.length >= 3) {
                 const threeSuspensions = user.accountSuspended.filter(suspension => 
                     suspension.reason === 'More than 3 cancellations in 3 months'
@@ -79,17 +76,16 @@ const checkCancellations = async(req, res,next)=> {
                 const suspensionEndDate = suspensionDuration
     ? new Date(currentDate.setDate(currentDate.getDate() + suspensionDuration))
     : null;
-console.log("llega?")
-                user.accountSuspended=[
-                    {
-                        suspendedDate: new Date(),
-                        reason: 'More than 3 cancellations in 3 months',
-                        suspensionEndDate: suspensionEndDate
-                    },
-                    ...user.accountSuspended
-                ]
-                await user.save();
-                return res.status(400).json({ message: "User has more than 3 cancellations in the last 3 months. Transport authorization revoked." });
+    user.accountSuspended=[
+        {
+            suspendedDate: new Date(),
+            reason: 'More than 3 cancellations in 3 months',
+            suspensionEndDate: suspensionEndDate
+        },
+        ...user.accountSuspended
+    ]
+    await user.save();
+    req.recentCancellations = recentCancellations.length;
             }
         }
 
