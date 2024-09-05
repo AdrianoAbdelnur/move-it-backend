@@ -74,21 +74,21 @@ const checkCancellations = async(req, res,next)=> {
                 }
 
                 const suspensionEndDate = suspensionDuration
-    ? new Date(currentDate.setDate(currentDate.getDate() + suspensionDuration))
+    ? new Date().setDate(new Date().getDate() + suspensionDuration)
     : null;
+    const suspension = {
+        suspendedDate: new Date(),
+        reason: 'More than 3 cancellations in 3 months',
+        suspensionEndDate: suspensionEndDate
+    }
     user.accountSuspended=[
-        {
-            suspendedDate: new Date(),
-            reason: 'More than 3 cancellations in 3 months',
-            suspensionEndDate: suspensionEndDate
-        },
+        suspension,
         ...user.accountSuspended
     ]
-    await user.save();
+    req.suspension = suspension
     req.recentCancellations = recentCancellations.length;
             }
         }
-
         await user.save();
         next()
     
