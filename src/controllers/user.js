@@ -208,7 +208,6 @@ const updateReviews = async(req,res) => {
         if (punctualityRating !== undefined) {
             const totalPunctuality = (user.review.punctualityRating * user.review.reviewsQuantity) + punctualityRating;
             user.review.punctualityRating = totalPunctuality / (user.review.reviewsQuantity + 1);
-            console.log("puntualidad", user.review.punctualityRating, user.review.reviewsQuantity, punctualityRating , totalPunctuality)
         }
           if (comunicationRating !== undefined) {
             const totalComunication = (user.review.comunicationRating * user.review.reviewsQuantity) + comunicationRating;
@@ -231,6 +230,9 @@ const updateReviews = async(req,res) => {
 
 const addCancelled = async(req,res) => {
     try {
+        if (req.recentCancellations >= 3) {
+            return res.status(200).json({ message: "User has more than 3 cancellations in the last 3 months. Transport authorization revoked." });
+        }
         res.status(200).json({ message: "Cancellation info added successfully" });       
     } catch (error) {
         res.status(error.code || 500).json({ message: error.message })

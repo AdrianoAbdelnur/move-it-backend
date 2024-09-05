@@ -94,7 +94,6 @@ const getMySelectedPosts =  async (req, res) => {
             model: 'User',
             select: 'given_name'
         });
-        console.log(postsSelectedOffers)
         if (postsSelectedOffers) {
             const yourOfferSelectedPosts = postsSelectedOffers.filter(post => 
                  post.offerSelected.owner == ownerId
@@ -145,7 +144,6 @@ const modifyStatus =  async (req, res) => {
 const selectOffer = async(req, res) => {
     try {
         const {postId, offerSelected} = req.body
-        console.log(postId, offerSelected)
         const postFound = await UserPost.findByIdAndUpdate(postId, {offerSelected, "status.mainStatus": "offerSelected", "status.offerAcepted": true}, {new:true}).populate({
             path: 'offerSelected',
             populate: {

@@ -16,7 +16,6 @@ const decodeToken = async (req, res, next) => {
 };
 
 const adminRequiredValidation = (req, res, next) => {
-    console.log(req.userRole) 
     if (req?.userRole !== 'admin')
         return res.status(401).json({ message: 'User without necessary privileges.' })
     next();
