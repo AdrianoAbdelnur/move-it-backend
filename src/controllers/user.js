@@ -230,10 +230,11 @@ const updateReviews = async(req,res) => {
 
 const addCancelled = async(req,res) => {
     try {
+        const {suspension} = req
         if (req.recentCancellations >= 3) {
-            return res.status(200).json({ message: "User has more than 3 cancellations in the last 3 months. Transport authorization revoked." });
+            return res.status(200).json({ message: "User has more than 3 cancellations in the last 3 months. Transport authorization revoked.", suspension});
         }
-        res.status(200).json({ message: "Cancellation info added successfully" });       
+        res.status(200).json({ message: "Cancellation info added successfully", suspension: null  });       
     } catch (error) {
         res.status(error.code || 500).json({ message: error.message })
     }
