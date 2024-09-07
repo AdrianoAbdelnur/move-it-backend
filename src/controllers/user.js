@@ -240,6 +240,18 @@ const addCancelled = async(req,res) => {
     }
 }
 
+const updateExpoPushToken = async(req, res) => {
+    try {
+        const {userId} = req.params
+        const {expoPushToken} = req.body;
+        const userFound = await User.findByIdAndUpdate(userId, { expoPushToken }, { new: true });
+        if (!userFound) return res.status(400).json({ message: 'User not found' });
+        res.status(200).json({ message: 'User successfully updated.', userFound });
+    } catch (error) {
+        res.status(error.code || 500).json({ message: error.message })
+    }
+}
+
 module.exports = {
     registerUser,
     loginUser,
@@ -252,5 +264,6 @@ module.exports = {
     verifyTransportFields,
     updateReviews,
     getImage,
-    addCancelled
+    addCancelled,
+    updateExpoPushToken
 }

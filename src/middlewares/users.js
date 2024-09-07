@@ -73,9 +73,13 @@ const checkCancellations = async(req, res,next)=> {
                     suspensionDuration = null;
                 }
 
-                const suspensionEndDate = suspensionDuration
-    ? new Date().setDate(new Date().getDate() + suspensionDuration)
-    : null;
+                let suspensionEndDate = null;
+                if (suspensionDuration) {
+                    suspensionEndDate = new Date();
+                    suspensionEndDate.setDate(suspensionEndDate.getDate() + suspensionDuration);
+            
+                    suspensionEndDate.setHours(0, 0, 0, 0);
+                }
     const suspension = {
         suspendedDate: new Date(),
         reason: 'More than 3 cancellations in 3 months',
