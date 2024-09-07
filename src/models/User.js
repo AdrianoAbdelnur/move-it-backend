@@ -25,6 +25,9 @@ const UserSchema = new Schema({
         type: String,
         default: 'user'
     },
+    expoPushToken: {
+        type: String
+    },
     infoCompletedFlag: {
         type: Boolean,
         default: false
