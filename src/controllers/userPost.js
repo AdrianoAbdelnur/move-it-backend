@@ -9,13 +9,13 @@ const addPost = async(req, res) => {
             path: 'offers',
             populate: {
               path: 'owner',
-              select: 'given_name review'
+              select: 'given_name review expoPushToken'
             }
           }).populate({
             path: 'offerSelected',
             populate: {
               path: 'owner',
-              select: 'given_name review'
+              select: 'given_name review expoPushToken'
             }
           }).populate({
             path: 'transportCancel',    
@@ -48,13 +48,13 @@ const getMyPosts =  async (req, res) => {
             path: 'offers',
             populate: {
               path: 'owner',
-              select: 'given_name review'
+              select: 'given_name review expoPushToken'
             }
           }).populate({
             path: 'offerSelected',
             populate: {
               path: 'owner',
-              select: 'given_name review'
+              select: 'given_name review expoPushToken'
             }
           }).populate({
             path: 'transportCancel',    
@@ -73,7 +73,7 @@ const getPendingPosts =  async (req, res) => {
             select: "_id",
             populate: {
                 path: "owner",
-                select: "given_name _id"
+                select: "given_name _id expoPushToken"
             }
         }).populate({
             path: 'transportCancel',    
@@ -92,7 +92,7 @@ const getMySelectedPosts =  async (req, res) => {
         const postsSelectedOffers = await UserPost.find({ offerSelected: { $ne: null } }).populate("offerSelected").populate({
             path: 'owner',
             model: 'User',
-            select: 'given_name'
+            select: 'given_name expoPushToken'
         });
         if (postsSelectedOffers) {
             const yourOfferSelectedPosts = postsSelectedOffers.filter(post => 
@@ -125,13 +125,13 @@ const modifyStatus =  async (req, res) => {
             path: 'offers',
             populate: {
               path: 'owner',
-              select: 'given_name review'
+              select: 'given_name review expoPushToken'
             }
           }).populate({
             path: 'offerSelected',
             populate: {
               path: 'owner',
-              select: 'given_name review'
+              select: 'given_name review expoPushToken'
             }
           });
         res.status(200).json({message: 'Post updated succesfully', newPost})
@@ -148,7 +148,7 @@ const selectOffer = async(req, res) => {
             path: 'offerSelected',
             populate: {
               path: 'owner',
-              select: 'given_name'
+              select: 'given_name expoPushToken'
             }
           });
         if (postFound) {
