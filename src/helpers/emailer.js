@@ -36,7 +36,7 @@ const sendMail = async (user) => {
         const info = await transporter.sendMail({
             from: 'adrianoabdelnur08@gmail.com',
             to: `${user.email}`,
-            subject: `Hello ${user.given_name} Welcome to Call a Car's community`,
+            subject: `Hi ${user.given_name}, use this code to verify your account`,
             html: `<p>Your verification code is: <strong>${user.verificationInfo.verificationCode}</strong> and it will exprire on ${readableDate}`
         });
     } catch (error) {

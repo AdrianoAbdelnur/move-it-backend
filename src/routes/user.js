@@ -19,7 +19,7 @@ router.get('/getImage/:userId/:imageType', getImage);
 
 router.patch('/addCancelation/:userId',checkCancellations, addCancelled);
 router.patch('/updateExpoPushToken/:userId',updateExpoPushToken);
-router.patch('/generateNewValidationCode/:userId',generateNewValidationCode);
+router.patch('/generateNewValidationCode/:userId?',generateNewValidationCode);
 router.patch('/validateMail/:userId',validateMail);
 
 module.exports = router; 
