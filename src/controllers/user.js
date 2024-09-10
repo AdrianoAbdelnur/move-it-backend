@@ -8,7 +8,8 @@ const crypto = require('crypto');
 const registerUser = async (req, res) => {
     try {
         const verificationCode = crypto.randomBytes(6).toString('hex').slice(0, 6).toUpperCase();
-        const expirationTime = Date.now() + 15 * 60 * 1000;
+        const currentTime = new Date();
+        const expirationTime = new Date(currentTime.getTime() + 15 * 60 * 1000);
         const salt = await bcryptjs.genSalt(10);
         const encryptedPassword = await bcryptjs.hash(req.body.password, salt)
         const userToRegister = {
@@ -263,7 +264,8 @@ const generateNewValidationCode = async(req, res) => {
     try {
         const {userId} = req.params
         const verificationCode = crypto.randomBytes(6).toString('hex').slice(0, 6).toUpperCase();
-        const expirationTime = Date.now() + 15 * 60 * 1000;
+        const currentTime = new Date();
+        const expirationTime = new Date(currentTime.getTime() + 15 * 60 * 1000);
         const userFound = await User.findByIdAndUpdate(userId, {verificationInfo : {verificationCode,expirationTime, attempts : 0 }}, { new: true });
         if (!userFound) return res.status(400).json({ message: 'User not found' });
         emailer.sendMail(userFound);
