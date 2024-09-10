@@ -291,7 +291,7 @@ const validateMail = async(req, res) => {
         if (userFound.verificationInfo.verificationCode === verificationCode) {
             userFound.validatedMail = true
             await userFound.save()
-            return res.status(200).json({ message: 'Email validated successfully.', user:userFound});
+            return res.status(200).json({ message: 'Email validated successfully.', userFound});
         } else {
             userFound.verificationInfo.attempts += 1;  
             
