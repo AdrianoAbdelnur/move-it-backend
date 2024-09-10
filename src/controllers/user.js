@@ -263,13 +263,27 @@ const updateExpoPushToken = async(req, res) => {
 const generateNewValidationCode = async(req, res) => {
     try {
         const {userId} = req.params
+        const { email } = req.body;
+        
         const verificationCode = crypto.randomBytes(6).toString('hex').slice(0, 6).toUpperCase();
         const currentTime = new Date();
         const expirationTime = new Date(currentTime.getTime() + 15 * 60 * 1000);
-        const userFound = await User.findByIdAndUpdate(userId, {verificationInfo : {verificationCode,expirationTime, attempts : 0 }}, { new: true });
+        
+        
+        let userFound;
+        if(userId) {
+            userFound = await User.findByIdAndUpdate(userId, {verificationInfo : {verificationCode,expirationTime, attempts : 0 }}, { new: true });
+        } else if (email) {
+            userFound = await User.findOneAndUpdate({ email }, {
+                verificationInfo: { verificationCode, expirationTime, attempts: 0 }
+            }, { new: true });
+        }
+        
         if (!userFound) return res.status(400).json({ message: 'User not found' });
+        
         emailer.sendMail(userFound);
-    res.status(200).json({ message: 'New code generated successfully.'});
+    
+        res.status(200).json({ message: 'New code generated successfully.'});
     } catch (error) {
         res.status(error.code || 500).json({ message: error.message })
     }
