@@ -17,6 +17,30 @@ const UserSchema = new Schema({
         type: Date,
         default: Date.now(),
     },
+    validatedMail: {
+        type: Boolean,
+        default: false,
+    },
+    verificationInfo: {
+        verificationCode: { 
+            type: String
+        },
+        expirationTime: {
+            type: Date
+        },
+        attempts: { 
+            type: Number, 
+            default: 0 
+        }, 
+        blockTime: { 
+            type: Date, 
+            default: null 
+        }, 
+        isPermanentlyBlocked: { 
+            type: Boolean, 
+            default: false 
+        }
+    },
     isDeleted: {
         type: Boolean,
         default: false,

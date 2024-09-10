@@ -3,18 +3,25 @@ const bcryptjs = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const emailer = require('../helpers/emailer');
 require('dotenv').config();
+const crypto = require('crypto');
 
 const registerUser = async (req, res) => {
     try {
+        const verificationCode = crypto.randomBytes(6).toString('hex').slice(0, 6).toUpperCase();
+        const expirationTime = Date.now() + 15 * 60 * 1000;
         const salt = await bcryptjs.genSalt(10);
         const encryptedPassword = await bcryptjs.hash(req.body.password, salt)
         const userToRegister = {
             ...req.body,
             password: encryptedPassword,
+            verificationInfo:{
+                verificationCode,
+                expirationTime,
+            }
         }
         const newUser = new User(userToRegister);
         await newUser.save();
-        /* emailer.sendMail(newUser); */
+        emailer.sendMail(newUser);
         res.status(200).json({ message: 'User successfully created.' })
     } catch (error) {
         res.status(error.code || 500).json({ message: error.message })
@@ -252,6 +259,64 @@ const updateExpoPushToken = async(req, res) => {
     }
 }
 
+const generateNewValidationCode = async(req, res) => {
+    try {
+        const {userId} = req.params
+        const verificationCode = crypto.randomBytes(6).toString('hex').slice(0, 6).toUpperCase();
+        const expirationTime = Date.now() + 15 * 60 * 1000;
+        const userFound = await User.findByIdAndUpdate(userId, {verificationInfo : {verificationCode,expirationTime, attempts : 0 }}, { new: true });
+        if (!userFound) return res.status(400).json({ message: 'User not found' });
+        emailer.sendMail(userFound);
+    res.status(200).json({ message: 'New code generated successfully.'});
+    } catch (error) {
+        res.status(error.code || 500).json({ message: error.message })
+    }
+}
+
+const validateMail = async(req, res) => {
+    try {
+        const {userId} = req.params
+        const {verificationCode} = req.body
+        const userFound = await User.findById(userId);
+        if (!userFound) return res.status(400).json({ message: 'User not found' });
+        if (userFound.verificationInfo.isPermanentlyBlocked) {
+            return res.status(403).json({ message: 'Your account is permanently blocked. Please contact support.' });
+        }
+        if (userFound.verificationInfo.blockTime && new Date() < new Date(userFound.verificationInfo.blockTime)) {
+            return res.status(403).json({ message: 'Too many failed attempts. Please wait a few minutes before trying again.' });
+        }
+        if (new Date(userFound.verificationInfo.expirationTime) < new Date()) {
+           return res.status(410).json({ message: 'The verification code has expired.' });           
+        } 
+        if (userFound.verificationInfo.verificationCode === verificationCode) {
+            userFound.validatedMail = true
+            await userFound.save()
+            return res.status(200).json({ message: 'Email validated successfully.', user:userFound});
+        } else {
+            userFound.verificationInfo.attempts += 1;  
+            
+            if (userFound.verificationInfo.attempts >= 3) {
+                if(userFound.verificationInfo.blockTime === null) {
+                userFound.verificationInfo.blockTime = new Date(Date.now() + 10 * 60 * 1000)
+                userFound.verificationInfo.attempts =0;
+            } else {
+                    userFound.verificationInfo.isPermanentlyBlocked = true;
+                }
+            }
+            await userFound.save();
+            return res.status(400).json({
+                message: userFound.verificationInfo.isPermanentlyBlocked
+                    ?'Your account is permanently blocked. Please contact support.':
+                    userFound.verificationInfo.blockTime && new Date() < new Date(userFound.verificationInfo.blockTime)
+                    ?'Too many failed attempts. Please wait before trying again.'
+                    : 'Invalid verification code.'
+            });
+        }
+    } catch (error) {
+        res.status(error.code || 500).json({ message: error.message })
+    }
+}
+
 module.exports = {
     registerUser,
     loginUser,
@@ -265,5 +330,7 @@ module.exports = {
     updateReviews,
     getImage,
     addCancelled,
-    updateExpoPushToken
+    updateExpoPushToken,
+    generateNewValidationCode,
+    validateMail
 }

@@ -1,4 +1,4 @@
-/* const nodemailer = require("nodemailer"); */
+const nodemailer = require("nodemailer");
 require('dotenv').config();
 
 const createTransport = () => {
@@ -7,8 +7,11 @@ const createTransport = () => {
         port:465,
         secure:true,
         auth:{
-            user:'tommysaurio007@gmail.com',
+            user:'adrianoabdelnur08@gmail.com',
             pass:process.env.GMAIL_PASS,
+        },
+        tls: {
+            rejectUnauthorized: false // Desactiva la verificación de certificados autofirmados
         }
     });
 
@@ -16,21 +19,31 @@ const createTransport = () => {
 }
 
 const sendMail = async (user) => {
-    const transporter = await createTransport();
-    const info = await transporter.sendMail({
-        from:'tommysaurio007@gmail.com',
-        to:`${user.email}`,
-        subject: `Hello ${user.username} Welcome to Mi Barrio Ciudadela's community`,
-        html: '<h1>Hi there your registration has been succesfully received.</h1><br/><h5>We have sent you a copy of our menu, hope we see you soon to taste our burgers!<h5/><br/><a href>',
-        attachments: [
-            {   
-                filename: 'carta.pdf',
-                path: 'https://github.com/thomas64mafut/g2-frontend/raw/main/src/assets/Carta%20Barrio.pdf'
-            },
-        ]
-    })
+    try {
+        const transporter = createTransport();
+        const date = new Date(user.verificationInfo.expirationTime);
 
-    return
+        const readableDate = date.toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true,
+          });
+
+        const info = await transporter.sendMail({
+            from: 'adrianoabdelnur08@gmail.com',
+            to: `${user.email}`,
+            subject: `Hello ${user.given_name} Welcome to Call a Car's community`,
+            html: `<p>Your verification code is: <strong>${user.verificationInfo.verificationCode}</strong> and it will exprire on ${readableDate}`
+        });
+    } catch (error) {
+        console.error('Error al enviar el correo:', error.message);
+    }
 }
+
+
 
 exports.sendMail = (user) => sendMail(user);
