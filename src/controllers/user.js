@@ -289,6 +289,57 @@ const generateNewValidationCode = async(req, res) => {
     }
 }
 
+const checkValidationCode = async(req, res) => {
+    try {
+        const {userId} = req.params
+        const { email, verificationCode } = req.body;
+        
+        let userFound;
+        if(userId) {
+            userFound = await User.findById(userId, );
+        } else if (email) {
+            userFound = await User.findOne( {email} );
+        }
+        if (!userFound) return res.status(400).json({ message: 'User not found' });
+        
+        if (userFound.verificationInfo.isPermanentlyBlocked) {
+            return res.status(403).json({ message: 'The account is permanently blocked. Please contact support.' });
+        }
+        if (userFound.verificationInfo.blockTime && new Date() < new Date(userFound.verificationInfo.blockTime)) {
+            return res.status(403).json({ message: 'Too many failed attempts. Please wait a few minutes before trying again.' });
+        }
+        if (new Date(userFound.verificationInfo.expirationTime) < new Date()) {
+           return res.status(410).json({ message: 'The verification code has expired.' });           
+        } 
+        if (userFound.verificationInfo.verificationCode === verificationCode) {
+            return res.status(200).json({ message: 'Code verified succesfully.'});
+        } else {
+            userFound.verificationInfo.attempts += 1;  
+            
+            if (userFound.verificationInfo.attempts >= 3) {
+                if(userFound.verificationInfo.blockTime === null) {
+                userFound.verificationInfo.blockTime = new Date(Date.now() + 10 * 60 * 1000)
+                userFound.verificationInfo.attempts =0;
+                } else {
+                    userFound.verificationInfo.isPermanentlyBlocked = true;
+                }
+            }
+            await userFound.save();
+            return res.status(400).json({
+                message: userFound.verificationInfo.isPermanentlyBlocked
+                    ?'Your account is permanently blocked. Please contact support.':
+                    userFound.verificationInfo.blockTime && new Date() < new Date(userFound.verificationInfo.blockTime)
+                    ?'Too many failed attempts. Please wait before trying again.'
+                    : 'Invalid verification code.'
+            });
+        }
+
+    } catch (error) {
+        res.status(error.code || 500).json({ message: error.message })
+    }
+
+}
+
 const validateMail = async(req, res) => {
     try {
         const {userId} = req.params
@@ -348,5 +399,6 @@ module.exports = {
     addCancelled,
     updateExpoPushToken,
     generateNewValidationCode,
-    validateMail
+    validateMail,
+    checkValidationCode
 }
