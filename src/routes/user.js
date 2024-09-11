@@ -1,5 +1,5 @@
 const express = require("express");
-const { registerUser, loginUser, getUser, getAllUsers, verifyTransportFields, updateFields, updateReviews, getImage, addCancelled, updateExpoPushToken, generateNewValidationCode, validateMail } = require("../controllers/user");
+const { registerUser, loginUser, getUser, getAllUsers, verifyTransportFields, updateFields, updateReviews, getImage, addCancelled, updateExpoPushToken, generateNewValidationCode, validateMail, checkValidationCode } = require("../controllers/user");
 const { validate } = require("../helpers/validate");
 const { verifyRegisterFields, verifyLoginFields, checkCancellations } = require("../middlewares/users");
 const { decodeToken, adminRequiredValidation } = require("../middlewares/auth");
@@ -21,5 +21,6 @@ router.patch('/addCancelation/:userId',checkCancellations, addCancelled);
 router.patch('/updateExpoPushToken/:userId',updateExpoPushToken);
 router.patch('/generateNewValidationCode/:userId?',generateNewValidationCode);
 router.patch('/validateMail/:userId',validateMail);
+router.patch('/checkValidationCode/:userId?',checkValidationCode);
 
 module.exports = router; 
