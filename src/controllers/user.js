@@ -384,6 +384,34 @@ const validateMail = async(req, res) => {
     }
 }
 
+const updatePass = async(req, res) => {
+    try {
+        const {userId} = req.params
+        const { email , verificationCode, password} = req.body;
+        const salt = await bcryptjs.genSalt(10);
+        const encryptedPassword = await bcryptjs.hash(password, salt)
+        console.log(email, verificationCode, password)
+        let userFound;
+        if(userId) {
+            userFound = await User.findById(userId, );
+        } else if (email) {
+            userFound = await User.findOne( {email} );
+        }
+        if (!userFound) return res.status(400).json({ message: 'User not found' });
+
+        if (userFound.verificationInfo.verificationCode === verificationCode) {
+            userFound.password = encryptedPassword;
+            userFound.save()
+            return res.status(200).json({ message: 'password updated successfully.'});
+        }
+
+
+    } catch (error) {
+        
+    }
+    
+}
+
 module.exports = {
     registerUser,
     loginUser,
@@ -400,5 +428,6 @@ module.exports = {
     updateExpoPushToken,
     generateNewValidationCode,
     validateMail,
-    checkValidationCode
+    checkValidationCode,
+    updatePass
 }
