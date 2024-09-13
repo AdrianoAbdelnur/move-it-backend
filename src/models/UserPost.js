@@ -125,6 +125,9 @@ const UserPostSchema = new Schema({
         type: Boolean,
         default: false,
     },
+    complaint: {
+      type: String
+    }
 },{
     versionKey: false
 }

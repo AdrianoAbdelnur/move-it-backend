@@ -1,5 +1,5 @@
 const express = require("express");
-const { addPost, getMyPosts, getAllPosts, getPendingPosts, addNewOffer, selectOffer, modifyStatus, addMessage, getMySelectedPosts } = require("../controllers/userPost");
+const { addPost, getMyPosts, getAllPosts, getPendingPosts, addNewOffer, selectOffer, modifyStatus, addMessage, getMySelectedPosts, addComplaint } = require("../controllers/userPost");
 const router = express.Router();
 
 router.post('/addPost', addPost )
@@ -11,5 +11,6 @@ router.put('/addNewOffer',  addNewOffer)
 router.patch('/selectOffer',  selectOffer)
 router.patch('/modifyStatus',  modifyStatus)
 router.patch('/addMessage/:postId',  addMessage)
+router.patch('/addComplaint/:postId',  addComplaint)
 
 module.exports = router; 

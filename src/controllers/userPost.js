@@ -187,6 +187,25 @@ const addMessage = async(req, res) => {
     
 }
 
+const addComplaint = async(req, res) => {
+    try {
+        const { postId } = req.params;
+        const { complaintText} = req.body;
+
+        const userPost = await UserPost.findById(postId);
+        if (!userPost) {
+            return res.status(404).json({ error: 'UserPost not found'});
+        }
+        userPost.complaint = complaintText;
+        await userPost.save();
+        res.status(200).json({message: 'Your complaint has been received. We will review the case and assist you.' })
+    } catch (error) {
+        res.status(error.code || 500).json({message : error.message})
+    }
+    
+}
+
+
 module.exports = {
     addPost,
     getAllPosts,
@@ -196,5 +215,6 @@ module.exports = {
     selectOffer,
     modifyStatus,
     addMessage,
-    getMySelectedPosts
+    getMySelectedPosts,
+    addComplaint
 }
