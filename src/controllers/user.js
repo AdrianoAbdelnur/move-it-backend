@@ -42,7 +42,7 @@ const loginUser = async (req, res) => {
                 role: userFound.role,
             },
         };
-        jwt.sign(payload, process.env.SECRET_WORD, { expiresIn: '8h' }, (error, token) => {
+        jwt.sign(payload, process.env.SECRET_WORD, (error, token) => {
             if (error) {
                 throw error;
             }
