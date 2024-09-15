@@ -84,6 +84,10 @@ const UserPostSchema = new Schema({
                     type: Boolean,
                     default: false
                 }
+            },
+            newComplaint: {
+              type: Boolean,
+              default: false
             }
         },
     offers: [
