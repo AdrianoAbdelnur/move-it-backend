@@ -213,7 +213,7 @@ const addComplaint = async(req, res) => {
         if (!newPost) {
             return res.status(404).json({ error: 'UserPost not found'});
         }
-        res.status(200).json({message: 'Your complaint has been received. We will review the case and assist you. We will contact you by email as soon as possible' })
+        res.status(200).json({message: 'Your complaint has been received. We will review the case and assist you. We will contact you by email as soon as possible',newPost })
     } catch (error) {
         res.status(error.code || 500).json({message : error.message})
     }
