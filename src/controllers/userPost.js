@@ -195,7 +195,8 @@ const addComplaint = async(req, res) => {
         const newPost = await UserPost.findByIdAndUpdate(postId, {
             $set: {
                 complaint: complaintText,
-                'status.mainStatus': 'complaint'
+                'status.mainStatus': 'complaint',
+                'status.newComplaint': true
             }
         } , {new: true}).populate({
             path: 'offers',
