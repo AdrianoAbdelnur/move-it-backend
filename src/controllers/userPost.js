@@ -192,13 +192,28 @@ const addComplaint = async(req, res) => {
         const { postId } = req.params;
         const { complaintText} = req.body;
 
-        const userPost = await UserPost.findById(postId);
-        if (!userPost) {
+        const newPost = await UserPost.findByIdAndUpdate(postId, {
+            $set: {
+                complaint: complaintText,
+                'status.mainStatus': 'complaint'
+            }
+        } , {new: true}).populate({
+            path: 'offers',
+            populate: {
+              path: 'owner',
+              select: 'given_name review expoPushToken'
+            }
+          }).populate({
+            path: 'offerSelected',
+            populate: {
+              path: 'owner',
+              select: 'given_name review expoPushToken'
+            }
+          });
+        if (!newPost) {
             return res.status(404).json({ error: 'UserPost not found'});
         }
-        userPost.complaint = complaintText;
-        await userPost.save();
-        res.status(200).json({message: 'Your complaint has been received. We will review the case and assist you.' })
+        res.status(200).json({message: 'Your complaint has been received. We will review the case and assist you. We will contact you by email as soon as possible' })
     } catch (error) {
         res.status(error.code || 500).json({message : error.message})
     }
