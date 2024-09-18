@@ -4,7 +4,7 @@ const Offer = require("../models/Offer");
 const addOffer = async(req, res) => {
     try {
         const offer = req.body
-        offerFound = await Offer.findOne({owner: offer.owner, isDeleted: false , post: offer.post})
+        const offerFound = await Offer.findOne({owner: offer.owner, isDeleted: false , post: offer.post, status: { $ne: "cancelled" }})
         if(!offerFound){
             let newOffer = new Offer(req.body)
             await newOffer.save();
@@ -74,11 +74,39 @@ const getMyAceptedOffers = async (req, res) => {
     }
 };
 
+const modifyStatus = async (req, res) => {
+    try {
+        const { offerId, newStatus } = req.body;
+
+        if (Array.isArray(offerId)) {
+            const updatedOffers = await Offer.updateMany(
+                { _id: { $in: offerId } },
+                { $set: { status: newStatus } }
+            );
+            return res.status(200).json({ message: 'The offers status have been updated'});
+        } else {
+            const updatedOffers = await Offer.findByIdAndUpdate(
+                offerId,
+                { $set: { status: newStatus } },
+                { new: true }
+            ).populate({
+                path: 'owner',
+                select: '_id given_name family_name review transportInfo.vehicle'
+            });
+            return res.status(200).json({ message: 'The offer status has been updated',  updatedOffers});
+        }
+    } catch (error) {
+        res.status(error.code || 500).json({ message: error.message });
+    }
+};
+
+
 
 module.exports = {
     addOffer,
     getOffersForMyPost,
     deleteOffer,
     selectOffer,
-    getMyAceptedOffers
+    getMyAceptedOffers,
+    modifyStatus
 }
