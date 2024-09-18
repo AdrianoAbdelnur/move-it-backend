@@ -7,7 +7,7 @@ router.get('/getOffersForMyPost/:id', getOffersForMyPost )
 router.patch('/deleteOffer/:id', deleteOffer )
 router.patch('/selectOffer/:id', selectOffer )
 router.get('/getMyAceptedOffers/:id', getMyAceptedOffers )
-router.get('/modifyStatus', modifyStatus )
+router.patch('/modifyStatus', modifyStatus )
 
 
 module.exports = router; 
