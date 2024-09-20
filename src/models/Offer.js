@@ -12,7 +12,7 @@ const OfferSchema = new Schema({
     price: {
         type: Number
     },
-    date: {
+    expiredTime: {
         type: Date
     },
     createAt: {
