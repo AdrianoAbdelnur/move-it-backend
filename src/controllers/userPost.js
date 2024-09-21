@@ -50,7 +50,7 @@ const getMyPosts =  async (req, res) => {
               path: 'owner',
               select: 'given_name review expoPushToken'
             },
-            select: "price post expiredTime status"
+            select: "_id price post expiredTime status"
           }).populate({
             path: 'offerSelected',
             populate: {
@@ -71,7 +71,7 @@ const getPendingPosts =  async (req, res) => {
     try {
         const pendingPost = await UserPost.find({"status.mainStatus": "pending" }).populate("owner").populate({
             path: "offers",
-            select: "_id",
+            select: "_id price post expiredTime status",
             populate: {
                 path: "owner",
                 select: "given_name _id expoPushToken"
