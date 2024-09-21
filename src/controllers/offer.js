@@ -79,7 +79,7 @@ const modifyStatus = async (req, res) => {
         const { offerId, newStatus } = req.body;
 
         if (Array.isArray(offerId)) {
-            const updatedOffers = await Offer.updateMany(
+            await Offer.updateMany(
                 { _id: { $in: offerId } },
                 { $set: { status: newStatus } }
             );
