@@ -4,7 +4,7 @@ const Offer = require("../models/Offer");
 const addOffer = async(req, res) => {
     try {
         const offer = req.body
-        const offerFound = await Offer.findOne({owner: offer.owner, isDeleted: false , post: offer.post, status: { $ne: "cancelled" }})
+        const offerFound = await Offer.findOne({owner: offer.owner, isDeleted: false , post: offer.post, status: { $ne: "expired" }})
         if(!offerFound){
             let newOffer = new Offer(req.body)
             await newOffer.save();
