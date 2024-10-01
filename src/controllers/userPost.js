@@ -21,11 +21,11 @@ const addPost = async(req, res) => {
             path: 'transportCancel',    
             select: 'given_name'
           })
-           res.status(200).json({message: 'Posted successfully', newPost: updatedPost})
+           res.status(200).json({message: 'Post updated successfully', newPost: updatedPost})
         } else {
             const newPost = new UserPost(post);
             await newPost.save();
-            res.status(200).json({message: 'Post added successfully', newPost})
+            res.status(200).json({message: 'New Post added successfully', newPost})
         }
     } catch (error) {
         res.status(error.code || 500).json({message : error.message})
