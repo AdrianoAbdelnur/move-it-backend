@@ -48,7 +48,7 @@ const getMyPosts =  async (req, res) => {
             path: 'offers',
             populate: {
               path: 'owner',
-              select: 'given_name review expoPushToken'
+              select: 'given_name review expoPushToken transportInfo.vehicle',
             },
             select: "_id price post expiredTime status"
           }).populate({
