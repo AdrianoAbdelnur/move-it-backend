@@ -1,7 +1,6 @@
 const express = require("express");
 const mongoose = require('mongoose');
 const http = require('http');
-const socketIo = require('socket.io');
 const app = express();
 require("dotenv").config();
 const cors = require("cors");
@@ -29,7 +28,10 @@ app.use("/api", require("./src/routes"));
 
 const server = http.createServer(app);
 
-const io = socketIo(server, {
+const setupSocket = require("./src/socketIo")
+const { io, users } = setupSocket(server);
+
+/* const io = socketIo(server, {
     cors: {
         origin: '*',
         methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'PATCH', 'DELETE']
@@ -75,7 +77,7 @@ io.on('connection', (socket) => {
             }
         }
     });
-});
+}); */
 
 mongoose.connect(process.env.DB_URL).then(() => {
     console.log("Connected to MongoDB");
@@ -83,3 +85,5 @@ mongoose.connect(process.env.DB_URL).then(() => {
         console.log(`Application listening on port ${process.env.API_PORT}`);
     });
 });
+
+module.exports = { io, users };
