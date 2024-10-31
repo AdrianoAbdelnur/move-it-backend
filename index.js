@@ -4,6 +4,7 @@ const http = require('http');
 const app = express();
 require("dotenv").config();
 const cors = require("cors");
+const {setupSocket} = require("./src/socketIo")
 
 app.use(express.json({ extended: true, limit: "50mb" }));
 app.use(express.json());
@@ -28,56 +29,7 @@ app.use("/api", require("./src/routes"));
 
 const server = http.createServer(app);
 
-const setupSocket = require("./src/socketIo")
-const { io, users } = setupSocket(server);
-
-/* const io = socketIo(server, {
-    cors: {
-        origin: '*',
-        methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'PATCH', 'DELETE']
-    }
-});
-
-const users = {};
-
-io.on('connection', (socket) => {
-
-    socket.on('newUser', (username) => {
-        users[username] = socket.id;
-        socket.userName = username;
-        console.log(`${username} has connected with ID ${socket.id}`);
-        console.log(users);
-    });
-
-    socket.on('message', (msg) => {
-        console.log('Message received:', msg);
-        io.emit('message', msg);
-    });
-
-    socket.on('privateMessage', ({ text, recipient, postId }) => {
-        const recipientSocketId = users[recipient];
-        if (recipientSocketId) {
-            io.to(recipientSocketId).emit('privateMessage', {
-                text,
-                sender: socket.userName,
-                postId
-            });
-            console.log(`Private message from ${socket.id} to ${recipientSocketId}: ${text}`);
-        } else {
-            console.log(`User ${recipient} is not connected`);
-        }
-    });
-
-    socket.on('disconnect', () => {
-        console.log('User disconnected:', socket.id);
-        for (let user in users) {
-            if (users[user] === socket.id) {
-                delete users[user];
-                break;
-            }
-        }
-    });
-}); */
+setupSocket(server);
 
 mongoose.connect(process.env.DB_URL).then(() => {
     console.log("Connected to MongoDB");
@@ -85,5 +37,3 @@ mongoose.connect(process.env.DB_URL).then(() => {
         console.log(`Application listening on port ${process.env.API_PORT}`);
     });
 });
-
-module.exports = { io, users };

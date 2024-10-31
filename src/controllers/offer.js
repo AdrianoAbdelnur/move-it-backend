@@ -1,4 +1,5 @@
-const Offer = require("../models/Offer");
+const Offer = require("../models/Offer")
+const { notifyOffer } = require("../socketIo")
 
 
 const addOffer = async(req, res) => {
@@ -9,6 +10,11 @@ const addOffer = async(req, res) => {
             let newOffer = new Offer(req.body)
             await newOffer.save();
             newOffer = await Offer.findById(newOffer._id).populate('post');
+            
+            const recipient = newOffer.post.owner;
+            notifyOffer(recipient, newOffer)
+
+
             res.status(200).json({message: 'Offer sent successfully', newOffer})
         }else res.status(409).json({message:'offer already made', offerFound})
     } catch (error) {

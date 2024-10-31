@@ -1,4 +1,3 @@
-
 const socketIo = require("socket.io");
 
 const users = {};
@@ -20,11 +19,6 @@ const setupSocket = (server) => {
             console.log(`${username} conectado con ID ${socket.id}`);
         });
 
-        socket.on("message", (msg) => {
-            console.log("Mensaje recibido:", msg);
-            io.emit("message", msg);
-        });
-
         socket.on("privateMessage", ({ text, recipient, postId }) => {
             const recipientSocketId = users[recipient];
             if (recipientSocketId) {
@@ -43,8 +37,15 @@ const setupSocket = (server) => {
             if (socket.userName) delete users[socket.userName];
         });
     });
+};
 
-    return { io, users };   
-}
+const notifyOffer = (recipient, newOffer) => {
+    const recipientSocketId = users[recipient];
+    if (recipientSocketId) {
+        io.to(recipientSocketId).emit("offerNotification", newOffer);
+    }
+};
 
-module.exports = setupSocket;
+
+
+module.exports = { setupSocket, notifyOffer };
