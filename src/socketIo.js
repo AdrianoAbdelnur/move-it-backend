@@ -41,8 +41,8 @@ const setupSocket = (server) => {
 
 const notifyOffer = (recipient, newOffer) => {
     const recipientSocketId = users[recipient];
+    console.log("recipient",recipient, "newOffer", newOffer, "recipientSocketId",recipientSocketId)
     if (recipientSocketId) {
-        console.log("recipient",recipient, "newOffer", newOffer, "recipientSocketId",recipientSocketId)
         io.to(recipientSocketId).emit("offerNotification", newOffer);
     }
 };
