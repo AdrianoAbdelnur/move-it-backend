@@ -1,9 +1,10 @@
 const socketIo = require("socket.io");
 
 const users = {};
+let io; 
 
 const setupSocket = (server) => {
-    const io = socketIo(server, {
+    io = socketIo(server, { 
         cors: {
             origin: '*',
             methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'PATCH', 'DELETE']
@@ -41,12 +42,10 @@ const setupSocket = (server) => {
 
 const notifyOffer = (recipient, newOffer) => {
     const recipientSocketId = users[recipient];
-    console.log("recipient",recipient, "newOffer", newOffer, "recipientSocketId",recipientSocketId)
+    console.log("recipient", recipient, "newOffer", newOffer, "recipientSocketId", recipientSocketId);
     if (recipientSocketId) {
         io.to(recipientSocketId).emit("offerNotification", newOffer);
     }
 };
-
-
 
 module.exports = { setupSocket, notifyOffer };
