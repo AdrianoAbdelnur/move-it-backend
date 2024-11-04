@@ -5,7 +5,10 @@ const { notifyOffer } = require("../socketIo")
 const addOffer = async(req, res) => {
     try {
         const offer = req.body
-        const offerFound = await Offer.findOne({owner: offer.owner, isDeleted: false , post: offer.post, status: { $ne: "expired" }})
+        const offerFound = await Offer.findOne({owner: offer.owner, isDeleted: false , post: offer.post, status: { $ne: "expired" }}).populate({
+            path: 'owner',
+            select: '_id given_name family_name review transportInfo.vehicle expoPushToken'
+        });
         if(!offerFound){
             let newOffer = new Offer(req.body)
             await newOffer.save();
@@ -97,7 +100,7 @@ const modifyStatus = async (req, res) => {
                 { new: true }
             ).populate({
                 path: 'owner',
-                select: '_id given_name family_name review transportInfo.vehicle'
+                select: '_id given_name family_name review transportInfo.vehicle expoPushToken'
             });
             return res.status(200).json({ message: 'The offer status has been updated',  updatedOffers});
         }
