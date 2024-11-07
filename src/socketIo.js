@@ -48,4 +48,8 @@ const notifyOffer = (recipient, newOffer) => {
     }
 };
 
-module.exports = { setupSocket, notifyOffer };
+const shareNewPost = (newPost) => {
+    io.emit("newPostNotification", newPost);
+}
+
+module.exports = { setupSocket, notifyOffer, shareNewPost };
