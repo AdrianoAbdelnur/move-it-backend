@@ -1,5 +1,6 @@
 const { default: mongoose } = require("mongoose");
 const UserPost = require("../models/UserPost");
+const {shareNewPost} = require("./../socketIo")
 
 const addPost = async(req, res) => {
     try {
@@ -25,6 +26,7 @@ const addPost = async(req, res) => {
         } else {
             const newPost = new UserPost(post);
             await newPost.save();
+            shareNewPost(newPost)
             res.status(200).json({message: 'New Post added successfully', newPost})
         }
     } catch (error) {
