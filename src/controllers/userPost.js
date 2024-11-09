@@ -26,7 +26,12 @@ const addPost = async(req, res) => {
         } else {
             const newPost = new UserPost(post);
             await newPost.save();
-            shareNewPost(newPost)
+            const populatedPost = await UserPost.findById(newPost._id)
+                .populate({
+                    path: 'owner',
+                    select: '-password'
+                })
+            shareNewPost(populatedPost)
             res.status(200).json({message: 'New Post added successfully', newPost})
         }
     } catch (error) {
@@ -71,7 +76,7 @@ const getMyPosts =  async (req, res) => {
 
 const getPendingPosts =  async (req, res) => {
     try {
-        const pendingPost = await UserPost.find({"status.mainStatus": "pending" }).populate("owner").populate({
+        const pendingPost = await UserPost.find({"status.mainStatus": "pending" }).populate({path: "owner", select: "-password"}).populate({
             path: "offers",
             select: "_id price post expiredTime status",
             populate: {
