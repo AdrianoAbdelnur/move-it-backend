@@ -42,9 +42,15 @@ const setupSocket = (server) => {
 
 const notifyOffer = (recipient, newOffer) => {
     const recipientSocketId = users[recipient];
-    console.log("recipient", recipient, "newOffer", newOffer, "recipientSocketId", recipientSocketId);
     if (recipientSocketId) {
         io.to(recipientSocketId).emit("offerNotification", newOffer);
+    }
+};
+
+const OfferSelected = (recipient, postOfferSelected) => {
+    const recipientSocketId = users[recipient];
+    if (recipientSocketId) {
+        io.to(recipientSocketId).emit("OfferSelected", postOfferSelected);
     }
 };
 
@@ -52,4 +58,4 @@ const shareNewPost = (newPost) => {
     io.emit("newPostNotification", newPost);
 }
 
-module.exports = { setupSocket, notifyOffer, shareNewPost };
+module.exports = { setupSocket, notifyOffer,OfferSelected, shareNewPost };

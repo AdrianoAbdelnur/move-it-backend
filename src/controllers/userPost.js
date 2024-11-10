@@ -1,6 +1,6 @@
 const { default: mongoose } = require("mongoose");
 const UserPost = require("../models/UserPost");
-const {shareNewPost} = require("./../socketIo")
+const {shareNewPost, OfferSelected} = require("./../socketIo")
 
 const addPost = async(req, res) => {
     try {
@@ -160,6 +160,7 @@ const selectOffer = async(req, res) => {
             }
           });
         if (postFound) {
+            OfferSelected(postFound.offerSelected.owner, postFound)
             res.status(200).json({message: 'Offer selected', postFound})
         }    
     } catch (error) {
