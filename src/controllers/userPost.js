@@ -160,7 +160,7 @@ const selectOffer = async(req, res) => {
             }
           });
         if (postFound) {
-            OfferSelected(postFound.offerSelected.owner, postFound)
+            OfferSelected(postFound.offerSelected.owner._id, postFound)
             res.status(200).json({message: 'Offer selected', postFound})
         }    
     } catch (error) {
