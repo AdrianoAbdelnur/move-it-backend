@@ -159,7 +159,7 @@ const selectOffer = async(req, res) => {
             path: 'offerSelected',
             populate: {
               path: 'owner',
-              select: 'given_name expoPushToken'
+              select: 'given_name expoPushToken review'
             }
           });
         if (postFound) {
