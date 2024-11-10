@@ -59,10 +59,10 @@ const shareNewPost = (newPost) => {
     io.emit("newPostNotification", newPost);
 }
 
-const notifyNewStatus = (recipient, newStatus)=> {
+const notifyNewStatus = (recipient, newPostStatus)=> {
     const recipientSocketId = users[recipient];
     if (recipientSocketId) {
-        io.to(recipientSocketId).emit("notifyNewStatus", newStatus);
+        io.to(recipientSocketId).emit("notifyNewStatus", newPostStatus);
     }
 }
 

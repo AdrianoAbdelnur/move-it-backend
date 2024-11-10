@@ -143,7 +143,7 @@ const modifyStatus =  async (req, res) => {
             }
           });
           if (newPost.status.mainStatus === "inProgress" || newPost.status.mainStatus === "transportDone") {
-            notifyNewStatus(newPost.owner, newPost.status)
+            notifyNewStatus(newPost.owner, newPost)
           }
         res.status(200).json({message: 'Post updated succesfully', newPost})
        
