@@ -1,6 +1,6 @@
 const { default: mongoose } = require("mongoose");
 const UserPost = require("../models/UserPost");
-const {shareNewPost, OfferSelected} = require("./../socketIo")
+const {shareNewPost, OfferSelected, notifyNewStatus} = require("./../socketIo")
 
 const addPost = async(req, res) => {
     try {
@@ -142,6 +142,9 @@ const modifyStatus =  async (req, res) => {
               select: 'given_name review expoPushToken'
             }
           });
+          if (newPost.status.mainStatus === "inProgress" || newPost.status.mainStatus === "transportDone") {
+            notifyNewStatus(newPost.owner, newPost.status)
+          }
         res.status(200).json({message: 'Post updated succesfully', newPost})
        
     } catch (error) {

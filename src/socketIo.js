@@ -59,4 +59,11 @@ const shareNewPost = (newPost) => {
     io.emit("newPostNotification", newPost);
 }
 
-module.exports = { setupSocket, notifyOffer,OfferSelected, shareNewPost };
+const notifyNewStatus = (recipient, newStatus)=> {
+    const recipientSocketId = users[recipient];
+    if (recipientSocketId) {
+        io.to(recipientSocketId).emit("notifyNewStatus", newStatus);
+    }
+}
+
+module.exports = { setupSocket, notifyOffer,OfferSelected, shareNewPost, notifyNewStatus };
