@@ -1,12 +1,14 @@
 const express = require("express");
-const { registerUser, loginUser, getUser, getAllUsers, verifyTransportFields, updateFields, updateReviews, getImage, addCancelled, updateExpoPushToken, generateNewValidationCode, validateMail, checkValidationCode, updatePass } = require("../controllers/user");
+const { registerUser, loginUser, getUser, getAllUsers, verifyTransportFields, updateFields, updateReviews, getImage, addCancelled, updateExpoPushToken, generateNewValidationCode, validateMail, checkValidationCode, updatePass, googleLogin } = require("../controllers/user");
 const { validate } = require("../helpers/validate");
 const { verifyRegisterFields, verifyLoginFields, checkCancellations } = require("../middlewares/users");
-const { decodeToken, adminRequiredValidation } = require("../middlewares/auth");
+const { decodeToken, adminRequiredValidation, decodeFirebaseToken } = require("../middlewares/auth");
 const router = express.Router();
 
 router.post('/register', verifyRegisterFields(), validate, registerUser);
 router.post('/login', verifyLoginFields(), validate, loginUser);
+router.post('/googleLogin', decodeFirebaseToken , googleLogin);
+
 
 router.get('/verifyFields', decodeToken, verifyTransportFields);
 router.patch('/updateFields', decodeToken, updateFields);

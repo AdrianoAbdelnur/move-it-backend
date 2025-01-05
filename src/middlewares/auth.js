@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 require('dotenv').config();
+const { OAuth2Client } = require('google-auth-library');
 
 
 const decodeToken = async (req, res, next) => {
@@ -21,7 +22,36 @@ const adminRequiredValidation = (req, res, next) => {
     next();
 };
 
+const decodeFirebaseToken = async (req, res, next) => {
+    const client = new OAuth2Client(process.env.CLIENT_ID);
+    try {
+        const token = req.headers['googleAuth'];
+
+        if (!token) {
+            return res.status(401).json({ error: 'Token missing in Authorization header' });
+        }
+
+        
+        const ticket = await client.verifyIdToken({
+            idToken: token,
+            audience: process.env.CLIENT_ID,
+        });
+        console.log("ticket",ticket)
+        const payload = ticket.getPayload();
+        console.log("PAYLOAD",payload)
+    
+        req.user = payload;
+
+        next();
+
+    } catch (error) {
+        console.error('Error al verificar el token:', error.message);
+        return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+};
+
 module.exports = {
     decodeToken,
+    decodeFirebaseToken,
     adminRequiredValidation,
 };
