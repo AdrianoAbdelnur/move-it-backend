@@ -25,7 +25,7 @@ const adminRequiredValidation = (req, res, next) => {
 const decodeFirebaseToken = async (req, res, next) => {
     const client = new OAuth2Client(process.env.CLIENT_ID);
     try {
-        const token = req.headers['googleAuth'];
+        const token = req.headers['googleauth'];
         console.log(req.headers)
         if (!token) {
             return res.status(401).json({ error: 'Token missing in Authorization header' });
