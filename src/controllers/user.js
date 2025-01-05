@@ -82,8 +82,6 @@ const googleLogin = async (req, res) => {
         return res.status(error.code || 500).json({ message: error.message })
         
     }
-       
-
 }
 
 const getUser = async (req, res) => {
