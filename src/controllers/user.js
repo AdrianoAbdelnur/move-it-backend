@@ -53,11 +53,44 @@ const loginUser = async (req, res) => {
     }
 };
 
+const googleLogin = async (req, res) => {
+    try {
+        const user = req.user
+        const userEmail = req.user.email
+        const userFound = await User.findOne({ userEmail});
+        if (!userFound) 
+            {
+                return res.status(404).json({ message: 'User not found.',  user});
+            }
+        if (userFound.isDeleted === true) res.status(400).json({ message: 'User was deleted.' });
+        if (userFound) {
+            const payload = {
+                user: {
+                    id: userFound._id,
+                    role: userFound.role,
+                },
+            };
+            jwt.sign(payload, process.env.SECRET_WORD, (error, token) => {
+                if (error) {
+                    throw error;
+                }
+                return res.status(200).json({ message: 'User successfully logged in.', token });
+            })
+        }
+        
+    } catch (error) {
+        return res.status(error.code || 500).json({ message: error.message })
+        
+    }
+       
+
+}
+
 const getUser = async (req, res) => {
     try {
         const userFound = await User.findById(req.userId).select('-password -transportInfo.generalImg -transportInfo.policeCheckPdf -transportInfo.cargoAreaImg -transportInfo.licenseFrontImg -transportInfo.licenseBackImg --transportInfo.profilePhotoImg -transportInfo.profilePhotoImg' );
-        if (!userFound) return res.status(400).json({ message: 'usuario no encontrado' });
-        res.status(200).json({ message: 'datos de usuario localizados con exito', userFound });
+        if (!userFound) return res.status(400).json({ message: 'User not found' });
+        res.status(200).json({ message: 'User data found successfully', userFound });
     } catch (error) {
         res.status(error.code || 500).json({ message: error.message })
     }
@@ -407,7 +440,7 @@ const updatePass = async(req, res) => {
 
 
     } catch (error) {
-        
+        res.status(error.code || 500).json({ message: error.message })
     }
     
 }
@@ -429,5 +462,6 @@ module.exports = {
     generateNewValidationCode,
     validateMail,
     checkValidationCode,
-    updatePass
+    updatePass,
+    googleLogin
 }
