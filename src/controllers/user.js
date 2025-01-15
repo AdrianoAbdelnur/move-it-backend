@@ -56,11 +56,12 @@ const loginUser = async (req, res) => {
 const googleLogin = async (req, res) => {
     try {
         const user = req.user
+        const idToken = req.idToken
         const userEmail = req.user.email
         const userFound = await User.findOne({ userEmail});
         if (!userFound) 
             {
-                return res.status(404).json({ message: 'User not found.',  user});
+                return res.status(404).json({ message: 'User not found.',  user, idToken});
             }
         if (userFound.isDeleted === true) res.status(400).json({ message: 'User was deleted.' });
         if (userFound) {
@@ -80,7 +81,23 @@ const googleLogin = async (req, res) => {
         
     } catch (error) {
         return res.status(error.code || 500).json({ message: error.message })
-        
+    }
+}
+
+const googleRegister = async (req, res) => {
+    try {
+        const user = req.user
+        const userToRegister = {
+            role: req.body.role,
+            given_name: req.user.given_name,
+            family_name: req.user.family_name,
+            email: req.user.email,
+            validatedMail: true
+        }
+        const newUser = new User(userToRegister);
+        await newUser.save();
+    } catch (error) {
+        return res.status(error.code || 500).json({ message: error.message })
     }
 }
 
@@ -461,5 +478,6 @@ module.exports = {
     validateMail,
     checkValidationCode,
     updatePass,
-    googleLogin
+    googleLogin,
+    googleRegister
 }
