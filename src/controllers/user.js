@@ -58,7 +58,8 @@ const googleLogin = async (req, res) => {
         const user = req.user
         const idToken = req.idToken
         const userEmail = req.user.email
-        const userFound = await User.findOne({ userEmail});
+        console.log(req.user.email)
+        const userFound = await User.findOne({ email: userEmail});
         if (!userFound) 
             {
                 return res.status(404).json({ message: 'User not found.',  user, idToken});
@@ -96,6 +97,7 @@ const googleRegister = async (req, res) => {
         }
         const newUser = new User(userToRegister);
         await newUser.save();
+        res.status(200).json({ message: 'User successfully created.' })
     } catch (error) {
         return res.status(error.code || 500).json({ message: error.message })
     }
