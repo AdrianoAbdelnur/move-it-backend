@@ -49,7 +49,6 @@ const notifyOffer = (recipient, newOffer) => {
 
 const OfferSelected = (recipient, postOfferSelected) => {
     const recipientSocketId = users[recipient];
-    console.log("recipient", recipient, "newOffer", postOfferSelected, "recipientSocketId", recipientSocketId);
     if (recipientSocketId) {
         io.to(recipientSocketId).emit("OfferSelected", postOfferSelected);
     }

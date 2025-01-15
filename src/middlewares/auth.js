@@ -26,7 +26,6 @@ const decodeFirebaseToken = async (req, res, next) => {
     const client = new OAuth2Client(process.env.CLIENT_ID);
     try {
         const token = req.headers['googleauth'];
-        console.log(req.headers)
         if (!token) {
             return res.status(401).json({ error: 'Token missing in Authorization header' });
         }
@@ -36,11 +35,10 @@ const decodeFirebaseToken = async (req, res, next) => {
             idToken: token,
             audience: process.env.CLIENT_ID,
         });
-        console.log("ticket",ticket)
         const payload = ticket.getPayload();
-        console.log("PAYLOAD",payload)
     
         req.user = payload;
+        req.idToken= token
 
         next();
 
