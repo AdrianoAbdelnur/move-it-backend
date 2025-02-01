@@ -58,7 +58,6 @@ const googleLogin = async (req, res) => {
         const user = req.user
         const idToken = req.idToken
         const userEmail = req.user.email
-        console.log(req.user.email)
         const userFound = await User.findOne({ email: userEmail});
         if (!userFound) 
             {
