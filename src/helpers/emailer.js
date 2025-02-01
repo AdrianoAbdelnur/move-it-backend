@@ -7,11 +7,11 @@ const createTransport = () => {
         port:465,
         secure:true,
         auth:{
-            user:'adrianoabdelnur08@gmail.com',
+            user:'callacartransportation@gmail.com',
             pass:process.env.GMAIL_PASS,
         },
         tls: {
-            rejectUnauthorized: false // Desactiva la verificación de certificados autofirmados
+            rejectUnauthorized: false 
         }
     });
 
@@ -34,7 +34,7 @@ const sendMail = async (user) => {
           });
 
         const info = await transporter.sendMail({
-            from: 'adrianoabdelnur08@gmail.com',
+            from: 'callacartransportation@gmail.com',
             to: `${user.email}`,
             subject: `Hi ${user.given_name}, use this code to verify your account`,
             html: `<p>Your verification code is: <strong>${user.verificationInfo.verificationCode}</strong> and it will exprire on ${readableDate}`
