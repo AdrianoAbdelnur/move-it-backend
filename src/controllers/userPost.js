@@ -142,7 +142,7 @@ const modifyStatus =  async (req, res) => {
               select: 'given_name review expoPushToken'
             }
           });
-          if (newPost.status.mainStatus === "inProgress" || newPost.status.mainStatus === "transportDone") {
+          if (newPost.status.mainStatus === "inProgress" || newPost.status.mainStatus === "transportDone" || newPost.status.mainStatus === "confirmed") {
             notifyNewStatus(newPost.owner, newPost)
           }
         res.status(200).json({message: 'Post updated succesfully', newPost})
