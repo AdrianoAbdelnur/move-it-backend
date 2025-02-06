@@ -15,6 +15,9 @@ const OfferSchema = new Schema({
     expiredTime: {
         type: Date
     },
+    offerDetails: {
+        type: String
+    },
     createAt: {
         type: Date,
         default: Date.now(),
