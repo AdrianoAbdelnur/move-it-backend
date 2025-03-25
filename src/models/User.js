@@ -60,9 +60,6 @@ const UserSchema = new Schema({
         type: Boolean,
         default: false
     },
-    accountId: { 
-        type: String 
-    },
     cancelledServices: [
         {
             serviceId: {
@@ -111,6 +108,9 @@ const UserSchema = new Schema({
         }
     },
     transportInfo: {
+        accountId: { 
+            type: String 
+        },
         vehicle: {
             type: String    
         }, 
