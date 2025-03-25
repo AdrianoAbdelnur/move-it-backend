@@ -60,6 +60,9 @@ const UserSchema = new Schema({
         type: Boolean,
         default: false
     },
+    accountId: { 
+        type: String 
+    },
     cancelledServices: [
         {
             serviceId: {
