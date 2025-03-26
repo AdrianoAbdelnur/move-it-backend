@@ -52,13 +52,13 @@ const createStripeAccount = async (req, res) => {
   
   try {
     const {email} = req.body
-
+    console.log(email)
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
 
-      const account = await stripe.accounts.create({
+/*       const account = await stripe.accounts.create({
           type: 'express', 
           country: 'AU',
           email: email,
@@ -67,8 +67,8 @@ const createStripeAccount = async (req, res) => {
               transfers: { requested: true }
           }
       });
-
-      res.json({ message: "Account created and linked successfully.", stripeAccountId: account.id });
+ */
+      res.json({ message: "Account created and linked successfully.", email });
   } catch (error) {
       res.status(500).json({ message: error.message });
   }
