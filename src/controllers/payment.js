@@ -49,9 +49,9 @@ const intent = async(req, res) => {
 
 
 const createStripeAccount = async (req, res) => {
-const {email} = req.body
-
+  
   try {
+    const {email} = req.body
 
     const user = await User.findOne({ email });
     if (!user) {
@@ -68,13 +68,7 @@ const {email} = req.body
           }
       });
 
-      const updatedUser  = await User.findOneAndUpdate({email}, {stripeAccountId: account.id}, {new: true})
-
-      if (!updatedUser ) {
-        return res.status(404).json({ message: "User not found." });
-    }
-
-      res.json({ message: "Account created and linked successfully.", user: updatedUser });
+      res.json({ message: "Account created and linked successfully.", stripeAccountId: account.id });
   } catch (error) {
       res.status(500).json({ message: error.message });
   }

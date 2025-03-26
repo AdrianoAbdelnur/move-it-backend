@@ -177,7 +177,8 @@ const updateFields = async (req, res) => {
             transportInfo:{
                 ...transportInfoStatus, 
                 vehicle: updatedUser.transportInfo.vehicle, 
-                registrationPlate:updatedUser.transportInfo.registrationPlate 
+                registrationPlate:updatedUser.transportInfo.registrationPlate, 
+                stripeAccountId: updatedUser.transportInfo.stripeAccountId
             }
         }
         res.status(200).json({ message: "User's data uploaded successfully.", transportInfoStatus });
