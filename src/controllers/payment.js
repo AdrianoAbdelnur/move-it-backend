@@ -87,8 +87,8 @@ const createStripeAccountLink = async (req, res) => {
   try {
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
-      refresh_url: 'yourapp://stripe-refresh',  
-      return_url: 'yourapp://stripe-return',    
+      refresh_url: 'cacapp://stripe-refresh',  
+      return_url: 'cacapp://stripe-return',    
       type: 'account_onboarding', 
     });
 
