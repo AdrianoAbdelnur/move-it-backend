@@ -69,6 +69,7 @@ const createStripeAccount = async (req, res) => {
 
       res.json({ message: "Account created and linked successfully.", stripeAccountId: account.id });
   } catch (error) {
+    console.log(error)
       res.status(500).json({ message: error.message });
   }
 };
