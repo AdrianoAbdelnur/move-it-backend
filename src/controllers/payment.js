@@ -33,10 +33,10 @@ const intent = async(req, res) => {
             automatic_payment_methods: {
               enabled: true,
             },
-            application_fee_amount: feeAmount, 
+            /* application_fee_amount: feeAmount, 
             transfer_data: {
                 destination: req.body.accountId,
-            },
+            }, */
           });
           res.json({ paymentIntent: paymentIntent.client_secret, customer });
     } catch (error) {
