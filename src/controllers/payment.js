@@ -95,9 +95,19 @@ const createStripeAccountLink = async (req, res) => {
   }
 };
 
+const returnUrl = async (req, res) => {
+  console.log("returnUrl")
+};
+
+const refreshUrl = async (req, res) => {
+  console.log("refreshUrl")
+};
+
 module.exports = {
  intent,
  createStripeAccount,
- createStripeAccountLink
+ createStripeAccountLink,
+ returnUrl,
+ refreshUrl
 }
 
