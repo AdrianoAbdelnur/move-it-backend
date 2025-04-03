@@ -88,8 +88,9 @@ const createStripeAccountLink = async (req, res) => {
     });
 
     
-    res.json({ url: accountLink.url });
+    console.log(accountLink)
   } catch (error) {
+    console.log(error)
     res.status(500).json({ message: error.message });
   }
 };
