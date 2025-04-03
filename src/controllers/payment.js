@@ -87,8 +87,8 @@ const createStripeAccountLink = async (req, res) => {
       type: 'account_onboarding', 
     });
 
+    res.json({ message: "url.", accountLink });
     
-    console.log(accountLink)
   } catch (error) {
     console.log(error)
     res.status(500).json({ message: error.message });
