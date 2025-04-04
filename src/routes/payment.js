@@ -5,7 +5,7 @@ const router = express.Router();
 router.post('/intent', intent)
 router.post('/createStripeAccount', createStripeAccount)
 router.post('/createStripeAccountLink', createStripeAccountLink)
-router.post('/returnUrl', returnUrl)
-router.post('/refreshUrl', refreshUrl)
+router.get('/returnUrl', returnUrl)
+router.get('/refreshUrl', refreshUrl)
 
 module.exports = router; 
