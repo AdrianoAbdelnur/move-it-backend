@@ -96,13 +96,13 @@ const createStripeAccountLink = async (req, res) => {
 };
 
 const returnUrl = async (req, res) => {
-  console.log("returnUrl")
+  console.log("returnUrl", req)
   const deepLink = 'cacapp://stripe-return';
   res.redirect(deepLink);
 };
 
 const refreshUrl = async (req, res) => {
-  console.log("refreshUrl")
+  console.log("refreshUrl", req)
   const deepLink = 'cacapp://stripe-refresh';
   res.redirect(deepLink);
 };
