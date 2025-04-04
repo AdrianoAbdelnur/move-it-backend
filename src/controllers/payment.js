@@ -82,8 +82,8 @@ const createStripeAccountLink = async (req, res) => {
   try {
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
-      refresh_url: 'cacapp://stripe-refresh',  
-      return_url: 'cacapp://stripe-return',    
+      refresh_url: 'https://move-it-backend-3.onrender.com/api/payment/refreshUrl',  
+      return_url: 'https://move-it-backend-3.onrender.com/api/payment/returnUrl',    
       type: 'account_onboarding', 
     });
 
@@ -97,10 +97,14 @@ const createStripeAccountLink = async (req, res) => {
 
 const returnUrl = async (req, res) => {
   console.log("returnUrl")
+  const deepLink = 'cacapp://stripe-return';
+  res.redirect(deepLink);
 };
 
 const refreshUrl = async (req, res) => {
   console.log("refreshUrl")
+  const deepLink = 'cacapp://stripe-refresh';
+  res.redirect(deepLink);
 };
 
 module.exports = {
