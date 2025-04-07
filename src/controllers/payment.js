@@ -119,6 +119,7 @@ const refreshUrl = async (req, res) => {
 
 const deleteStripeUser = async (req, res) => {
   const { email: targetEmail } = req.body;
+  console.log("targetEmail",targetEmail)
   let hasMore = true;
   let startingAfter = null;
   let deletedCount = 0;
