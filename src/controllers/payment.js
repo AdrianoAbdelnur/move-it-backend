@@ -164,6 +164,7 @@ module.exports = {
  createStripeAccountLink,
  returnUrl,
  refreshUrl,
- deleteUser
+ deleteStripeUser
+
 }
 
