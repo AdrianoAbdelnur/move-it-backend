@@ -1,5 +1,5 @@
 const express = require("express");
-const { intent, createStripeAccount, createStripeAccountLink, returnUrl, refreshUrl, deleteUser } = require("../controllers/payment");
+const { intent, createStripeAccount, createStripeAccountLink, returnUrl, refreshUrl, deleteUser, deleteStripeUser } = require("../controllers/payment");
 const router = express.Router();
 
 router.post('/intent', intent)
