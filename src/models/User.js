@@ -108,8 +108,14 @@ const UserSchema = new Schema({
         }
     },
     transportInfo: {
-        stripeAccountId: { 
-            type: String 
+        stripeAccount: { 
+            accountId: {
+                type: String
+            },
+            validatedAccount: {
+                type: Boolean, 
+                default: false
+            } 
         },
         ABN: {
             type: String
