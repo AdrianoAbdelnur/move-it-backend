@@ -119,7 +119,6 @@ const refreshUrl = async (req, res) => {
 
 const deleteStripeUser = async (req, res) => {
   const { email: targetEmail } = req.body;
-
   let hasMore = true;
   let startingAfter = null;
   let deletedCount = 0;
@@ -128,7 +127,7 @@ const deleteStripeUser = async (req, res) => {
     while (hasMore) {
       const accounts = await stripe.accounts.list({
         limit: 100,
-        starting_after: startingAfter,
+        ...(startingAfter && { starting_after: startingAfter }),
       });
 
       for (const account of accounts.data) {
@@ -136,8 +135,8 @@ const deleteStripeUser = async (req, res) => {
           console.log(`Eliminando cuenta: ${account.id} (${account.email})`);
           try {
             await stripe.accounts.del(account.id);
-            console.log(`✅ Eliminada: ${account.id}`);
             deletedCount++;
+            console.log(`✅ Eliminada: ${account.id}`);
           } catch (err) {
             console.log(`❌ Error al eliminar ${account.id}:`, err.message);
           }
@@ -148,13 +147,17 @@ const deleteStripeUser = async (req, res) => {
       startingAfter = accounts.data[accounts.data.length - 1]?.id;
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       message: `Proceso completado.`,
       deletedCount,
     });
+
   } catch (error) {
-    console.error("Error general:", error.message);
-    res.status(500).json({ message: "Error eliminando cuentas", error: error.message });
+    console.error('Error en la eliminación:', error.message);
+    return res.status(500).json({
+      message: "Error eliminando cuentas",
+      error: error.message
+    });
   }
 };
 
