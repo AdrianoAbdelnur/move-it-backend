@@ -108,18 +108,6 @@ const UserSchema = new Schema({
         }
     },
     transportInfo: {
-        stripeAccount: { 
-            accountId: {
-                type: String
-            },
-            validatedAccount: {
-                type: Boolean, 
-                default: false
-            } 
-        },
-        ABN: {
-            type: String
-        },
         vehicle: {
             type: String    
         }, 
@@ -143,6 +131,18 @@ const UserSchema = new Schema({
         },
         policeCheckPdf: {
             type: String
+        },
+        ABN: {
+            type: String
+        },
+        stripeAccount: {
+            accountId: {
+                type: String
+            },
+            validatedAccount: {
+                type: Boolean,
+                default: false
+            }
         }
     }
 },{
