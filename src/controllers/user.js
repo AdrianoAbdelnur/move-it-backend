@@ -213,7 +213,13 @@ const verifyTransportFields = async(req,res) => {
         for (const [key, value] of Object.entries(userFound.transportInfo)) {
             transportInfoStatus[key] = value? true : false;
         }
-        transportInfoStatus= {...transportInfoStatus, vehicle: userFound.transportInfo.vehicle, registrationPlate:userFound.transportInfo.registrationPlate }
+        transportInfoStatus= {
+            ...transportInfoStatus, 
+            vehicle: userFound.transportInfo.vehicle, 
+            registrationPlate: userFound.transportInfo.registrationPlate ,
+            ABN: userFound.transportInfo.ABN,
+            stripeAccount: userFound.transportInfo.stripeAccount,
+        }
         res.status(200).json({ message: 'Data successfully obtained', transportInfoStatus });
     } catch (error) {
         res.status(error.code || 500).json({ message: error.message })
