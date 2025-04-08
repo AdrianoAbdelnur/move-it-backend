@@ -67,16 +67,6 @@ const createStripeAccount = async (req, res) => {
           }
       });
 
-      user.transportInfo = {
-        ...user.transportInfo, 
-        stripeAccount: {
-          ...user.transportInfo?.stripeAccount,
-          accountId: account.id,
-        }
-      };
-      
-      await user.save();
-
       res.json({ message: "Account created and linked successfully.", stripeAccountId: account.id });
   } catch (error) {
     console.log(error)
