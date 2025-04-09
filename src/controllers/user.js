@@ -172,14 +172,13 @@ const updateFields = async (req, res) => {
         for (const [key, value] of Object.entries(updatedUser.transportInfo)) {
             transportInfoStatus[key] = value? true : false;
         }
-        console.log("AAAupdatedUser",updatedUser)
         transportInfoStatus={
             infoCompletedFlag: updatedUser.infoCompletedFlag,
             transportInfo:{
                 ...transportInfoStatus, 
                 vehicle: updatedUser.transportInfo.vehicle, 
                 registrationPlate:updatedUser.transportInfo.registrationPlate, 
-                stripeAccountId: updatedUser.transportInfo.stripeAccountId
+                stripeAccountId: updatedUser.transportInfo.stripeAccount
             }
         }
         res.status(200).json({ message: "User's data uploaded successfully.", transportInfoStatus });
