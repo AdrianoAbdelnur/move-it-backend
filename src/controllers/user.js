@@ -178,7 +178,7 @@ const updateFields = async (req, res) => {
                 ...transportInfoStatus, 
                 vehicle: updatedUser.transportInfo.vehicle, 
                 registrationPlate:updatedUser.transportInfo.registrationPlate, 
-                stripeAccountId: updatedUser.transportInfo.stripeAccount
+                stripeAccount: updatedUser.transportInfo.stripeAccount
             }
         }
         console.log("transportInfoStatus",transportInfoStatus)
