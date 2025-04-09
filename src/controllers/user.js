@@ -172,6 +172,7 @@ const updateFields = async (req, res) => {
         for (const [key, value] of Object.entries(updatedUser.transportInfo)) {
             transportInfoStatus[key] = value? true : false;
         }
+        console.log("AAAupdatedUser",updatedUser)
         transportInfoStatus={
             infoCompletedFlag: updatedUser.infoCompletedFlag,
             transportInfo:{
@@ -208,7 +209,6 @@ const loginStatus = (req, res) => {
 const verifyTransportFields = async(req,res) => {
     try {
         const userFound = await User.findById(req.userId).select('-password');
-        console.log(userFound)
         if (!userFound) return res.status(400).json({ message: 'User Not Found' });
         let transportInfoStatus = {};
         for (const [key, value] of Object.entries(userFound.transportInfo)) {
