@@ -220,6 +220,7 @@ const verifyTransportFields = async(req,res) => {
             ABN: userFound.transportInfo.ABN,
             stripeAccount: userFound.transportInfo.stripeAccount,
         }
+        console.log(transportInfoStatus)
         res.status(200).json({ message: 'Data successfully obtained', transportInfoStatus });
     } catch (error) {
         res.status(error.code || 500).json({ message: error.message })
@@ -446,7 +447,6 @@ const updatePass = async(req, res) => {
         const { email , verificationCode, password} = req.body;
         const salt = await bcryptjs.genSalt(10);
         const encryptedPassword = await bcryptjs.hash(password, salt)
-        console.log(email, verificationCode, password)
         let userFound;
         if(userId) {
             userFound = await User.findById(userId, );
