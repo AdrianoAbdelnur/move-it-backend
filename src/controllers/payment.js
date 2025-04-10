@@ -155,7 +155,9 @@ const deleteStripeUser = async (req, res) => {
 const checkStripeAccountStatus = async (req,res) => {
   try {
     const { id } = req.params
+    console.log("IDDDDD",id)
     const user = await User.findById(id);
+    console.log("USERRRR",user)
     const accountId = user?.transportInfo?.stripeAccount?.accountId;
 
     if (!accountId) {
