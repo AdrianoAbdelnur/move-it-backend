@@ -8,6 +8,6 @@ router.post('/createStripeAccountLink', createStripeAccountLink)
 router.get('/returnUrl', returnUrl)
 router.get('/refreshUrl', refreshUrl)
 router.post('/deleteStripeUser', deleteStripeUser)
-router.post('/checkStripeAccountStatus/:id', checkStripeAccountStatus)
+router.get('/checkStripeAccountStatus/:id', checkStripeAccountStatus)
 
 module.exports = router; 
