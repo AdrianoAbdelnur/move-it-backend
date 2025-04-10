@@ -152,13 +152,44 @@ const deleteStripeUser = async (req, res) => {
   }
 };
 
+const checkStripeAccountStatus = async (req,res) => {
+  try {
+    const { id } = req.params
+    const user = await User.findById(id);
+    const accountId = user?.transportInfo?.stripeAccount?.accountId;
+
+    if (!accountId) {
+      return res.status(400).json({ message: 'Stripe accountId not found in user data.' });
+    }
+
+    try {
+      const account = await stripe.accounts.retrieve(accountId);
+      return res.status(200).json({
+        message: 'Stripe account exists.',
+        accountId: account.id,
+        detailsSubmitted: account.details_submitted,
+        chargesEnabled: account.charges_enabled,
+        payoutsEnabled: account.payouts_enabled,
+      });
+    } catch (stripeErr) {
+      if (stripeErr.statusCode === 404) {
+        return res.status(404).json({ message: 'Stripe account not found.' });
+      }
+      throw stripeErr;
+    }
+  } catch (err) {
+    console.error('Error verifying Stripe account:', err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+}
+
 module.exports = {
  intent,
  createStripeAccount,
  createStripeAccountLink,
  returnUrl,
  refreshUrl,
- deleteStripeUser
-
+ deleteStripeUser,
+ checkStripeAccountStatus
 }
 
