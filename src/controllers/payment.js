@@ -22,22 +22,26 @@ const intent = async(req, res) => {
         }
 
         const amount = req.body.amount;
-
-        const feePercentage = req.body.feePercentage || 20; 
-        const feeAmount = Math.round(amount * (feePercentage / 100)); 
-
+        const providerAccountId = req.body.providerAccountId; 
+        const profitMargin = req.body.profitMargin; 
+        const platformFee = Math.floor(amount * profitMargin);
+    
         const paymentIntent = await stripe.paymentIntents.create({
-            amount: req.body.amount, 
-            currency: 'aud',
-            customer: customer.id,
-            automatic_payment_methods: {
-              enabled: true,
-            },
-            /* application_fee_amount: feeAmount, 
-            transfer_data: {
-                destination: req.body.accountId,
-            }, */
-          });
+          amount,
+          currency: 'aud',
+          customer: customer.id,
+          automatic_payment_methods: {
+            enabled: true,
+          },
+    
+          
+          transfer_data: {
+            destination: providerAccountId, 
+          },
+    
+          application_fee_amount: platformFee,
+        });
+
           res.json({ paymentIntent: paymentIntent.client_secret, customer });
     } catch (error) {
       if (error.type === 'StripeInvalidRequestError') {
@@ -193,4 +197,3 @@ module.exports = {
  deleteStripeUser,
  checkStripeAccountStatus
 }
-
