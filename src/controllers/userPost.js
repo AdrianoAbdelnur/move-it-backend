@@ -81,7 +81,7 @@ const getPendingPosts =  async (req, res) => {
             select: "_id price post expiredTime offerDetails status",
             populate: {
                 path: "owner",
-                select: "given_name _id expoPushToken"
+                select: "given_name _id expoPushToken transportInfo.stripeAccount"
             }
         }).populate({
             path: 'transportCancel',    

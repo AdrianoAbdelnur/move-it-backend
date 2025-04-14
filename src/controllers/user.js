@@ -159,11 +159,17 @@ const updateFields = async (req, res) => {
         const updatedUser = await User.findByIdAndUpdate(req.userId, { $set: updateFields }, { new: true }).select('-password' );
         let allFilled = true;
         for (const [key, value] of Object.entries(updatedUser.transportInfo)) {
-            if(!value) {
-                allFilled = false
-                break
+            if (key === 'stripeAccount') {
+                if (!value || value.validatedAccount !== true) {
+                    allFilled = false;
+                    break;
+                }
+            } else if (!value) {
+                allFilled = false;
+                break;
             }
         }
+        
         if (allFilled) {
             updatedUser.infoCompletedFlag = true;
             await updatedUser.save();
@@ -178,7 +184,8 @@ const updateFields = async (req, res) => {
                 ...transportInfoStatus, 
                 vehicle: updatedUser.transportInfo.vehicle, 
                 registrationPlate:updatedUser.transportInfo.registrationPlate, 
-                stripeAccount: updatedUser.transportInfo.stripeAccount
+                stripeAccount: updatedUser.transportInfo.stripeAccount,
+                ABN: updatedUser.transportInfo.ABN
             }
         }
         res.status(200).json({ message: "User's data uploaded successfully.", transportInfoStatus });
