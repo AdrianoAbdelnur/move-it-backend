@@ -21,7 +21,10 @@ const addPost = async(req, res) => {
           }).populate({
             path: 'transportCancel',    
             select: 'given_name'
-          })
+          }).populate({
+            path: 'owner',
+            select: '-password'
+        })
           shareNewPost(updatedPost)
            res.status(200).json({message: 'Post updated successfully', newPost: updatedPost})
         } else {
