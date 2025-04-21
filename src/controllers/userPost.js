@@ -22,6 +22,7 @@ const addPost = async(req, res) => {
             path: 'transportCancel',    
             select: 'given_name'
           })
+          shareNewPost(updatedPost)
            res.status(200).json({message: 'Post updated successfully', newPost: updatedPost})
         } else {
             const newPost = new UserPost(post);
