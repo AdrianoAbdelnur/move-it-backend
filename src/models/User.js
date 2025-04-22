@@ -132,9 +132,6 @@ const UserSchema = new Schema({
         policeCheckPdf: {
             type: String
         },
-        ABN: {
-            type: String
-        },
         stripeAccount: {
             accountId: {
                 type: String
