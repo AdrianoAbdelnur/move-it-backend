@@ -21,10 +21,13 @@ const intent = async(req, res) => {
           });
         }
 
-        const amount = req.body.amount;
+        const amount = req.body.amount; 
         const providerAccountId = req.body.providerAccountId; 
         const profitMargin = req.body.profitMargin; 
-        const platformFee = Math.floor(amount * profitMargin);
+
+
+        const platformFee = Math.floor(amount * profitMargin / (1 + profitMargin));
+
     
         const paymentIntent = await stripe.paymentIntents.create({
           amount,
