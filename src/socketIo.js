@@ -1,6 +1,7 @@
 const socketIo = require("socket.io");
 
 const users = {};
+const lastPong = {};
 let io; 
 
 const setupSocket = (server) => {
@@ -12,57 +13,104 @@ const setupSocket = (server) => {
     });
 
     io.on("connection", (socket) => {
-        console.log("Nuevo cliente conectado:", socket.id);
+        console.log("New client connected:", socket.id);
 
         socket.on("newUser", (username) => {
-            users[username] = socket.id;
+            if (!users[username]) users[username] = [];
+            users[username].push(socket.id);
             socket.userName = username;
+            lastPong[socket.id] = Date.now();
             console.log(`${username} conectado con ID ${socket.id}`);
-        });
+          });
+      
+          socket.on("pongCheck", () => {
+            lastPong[socket.id] = Date.now();
+          });
 
-        socket.on("privateMessage", ({ text, recipient, postId }) => {
-            const recipientSocketId = users[recipient];
-            if (recipientSocketId) {
-                io.to(recipientSocketId).emit("privateMessage", {
-                    text,
-                    sender: socket.userName,
-                    postId
+          socket.on("privateMessage", ({ text, recipient, postId }, callback) => {
+            const sockets = users[recipient] || [];
+            let sent = false;
+      
+            sockets.forEach(socketId => {
+              const targetSocket = io.sockets.sockets.get(socketId);
+              if (targetSocket?.connected) {
+                targetSocket.emit("privateMessage", {
+                  text,
+                  sender: socket.userName,
+                  postId
                 });
-            } else {
-                console.log(`El usuario ${recipient} no está conectado`);
-            }
-        });
+                sent = true;
+              }
+            });
+      
+            callback?.(sent ? { status: "ok" } : { status: "error", reason: "Usuario no conectado" });
+          });
 
-        socket.on("disconnect", () => {
+          socket.on("disconnect", () => {
             console.log("Usuario desconectado:", socket.id);
-            if (socket.userName) delete users[socket.userName];
+            const username = socket.userName;
+            if (username && users[username]) {
+              users[username] = users[username].filter(id => id !== socket.id);
+              if (users[username].length === 0) delete users[username];
+            }
+            delete lastPong[socket.id];
+          });
         });
-    });
-};
+      
+       
+        setInterval(() => {
+          const timeout = 60000;
+          for (const [socketId, lastTime] of Object.entries(lastPong)) {
+            const now = Date.now();
+            if (now - lastTime > timeout) {
+              const socket = io.sockets.sockets.get(socketId);
+              if (socket) {
+                console.log("💀 Desconectando socket inactivo:", socketId);
+                socket.disconnect(true);
+              }
+            } else {
+              io.to(socketId).emit("pingCheck");
+            }
+          }
+        }, 30000); 
+      };
 
-const notifyOffer = (recipient, newOffer) => {
-    const recipientSocketId = users[recipient];
-    if (recipientSocketId) {
-        io.to(recipientSocketId).emit("offerNotification", newOffer);
+
+      const notifyOffer = (recipient, newOffer) => {
+        const sockets = users[recipient] || [];
+        sockets.forEach(socketId => {
+          const targetSocket = io.sockets.sockets.get(socketId);
+          if (targetSocket?.connected) {
+            targetSocket.emit("offerNotification", newOffer);
+          }
+        });
+      };
+      
+      const OfferSelected = (recipient, postOfferSelected) => {
+        const sockets = users[recipient] || [];
+        sockets.forEach(socketId => {
+          const targetSocket = io.sockets.sockets.get(socketId);
+          if (targetSocket?.connected) {
+            targetSocket.emit("OfferSelected", postOfferSelected);
+          }
+        });
+      };
+      
+      const notifyNewStatus = (recipient, newPostStatus) => {
+        const sockets = users[recipient] || [];
+        sockets.forEach(socketId => {
+          const targetSocket = io.sockets.sockets.get(socketId);
+          if (targetSocket?.connected) {
+            targetSocket.emit("notifyNewStatus", newPostStatus);
+          }
+        });
+      };
+
+
+    const shareNewPost = (newPost) => {
+        io.emit("newPostNotification", newPost);
     }
-};
 
-const OfferSelected = (recipient, postOfferSelected) => {
-    const recipientSocketId = users[recipient];
-    if (recipientSocketId) {
-        io.to(recipientSocketId).emit("OfferSelected", postOfferSelected);
-    }
-};
 
-const shareNewPost = (newPost) => {
-    io.emit("newPostNotification", newPost);
-}
-
-const notifyNewStatus = (recipient, newPostStatus)=> {
-    const recipientSocketId = users[recipient];
-    if (recipientSocketId) {
-        io.to(recipientSocketId).emit("notifyNewStatus", newPostStatus);
-    }
-}
 
 module.exports = { setupSocket, notifyOffer,OfferSelected, shareNewPost, notifyNewStatus };
