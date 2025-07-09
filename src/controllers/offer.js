@@ -17,7 +17,6 @@ const addOffer = async(req, res) => {
             const recipient = newOffer.post.owner;
             notifyOffer(recipient, newOffer)
 
-
             res.status(200).json({message: 'Offer sent successfully', newOffer})
         }else res.status(409).json({message:'offer already made', offerFound})
     } catch (error) {
