@@ -162,6 +162,7 @@ const modifyStatus =  async (req, res) => {
 const selectOffer = async(req, res) => {
     try {
         const {postId, offerSelected} = req.body
+
         const postFound = await UserPost.findByIdAndUpdate(postId, {offerSelected, "status.mainStatus": "offerSelected", "status.offerAcepted": true}, {new:true}).populate({
             path: 'offerSelected',
             populate: {
@@ -170,6 +171,7 @@ const selectOffer = async(req, res) => {
             }
           });
         if (postFound) {
+          console.log("OWNER ID",postFound.offerSelected.owner._id, "POST ACTUALIZADO",postFound)
             OfferSelected(postFound.offerSelected.owner._id, postFound)
             res.status(200).json({message: 'Offer selected', postFound})
         }    
