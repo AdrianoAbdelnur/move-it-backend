@@ -1,59 +1,63 @@
+const Offer = require('../models/Offer');
 const User = require('../models/User');
 
 require('dotenv').config();
 const stripe = require("stripe")( process.env.STRIPE_KEY)
 
-const intent = async(req, res) => {
-    try {
-        let customer;
-        const existingCustomers = await stripe.customers.list({
-          email: req.body.email,
-          limit: 1,
-        });
-    
-        if (existingCustomers.data.length > 0) {
-          customer = existingCustomers.data[0];
-        } else {
-          customer = await stripe.customers.create({
-            email: req.body.email,
-            name: req.body.name,
-            description: 'new client to pay',
-          });
-        }
+const intent = async (req, res) => {
+  try {
+    const { amount, offerId, email, name, providerAccountId } = req.body;
 
-        const amount = req.body.amount; 
-        const providerAccountId = req.body.providerAccountId; 
-        const profitMargin = req.body.profitMargin; 
+    const offer = await Offer.findById(offerId);
+    if (!offer) return res.status(404).json({ message: "Offer not found" });
 
+    let customer;
+    const existingCustomers = await stripe.customers.list({
+      email,
+      limit: 1,
+    });
 
-        const platformFee = Math.floor(amount * profitMargin / (1 + profitMargin));
-
-    
-        const paymentIntent = await stripe.paymentIntents.create({
-          amount,
-          currency: 'aud',
-          customer: customer.id,
-          automatic_payment_methods: {
-            enabled: true,
-          },
-    
-          
-          transfer_data: {
-            destination: providerAccountId, 
-          },
-    
-          application_fee_amount: platformFee,
-        });
-
-          res.json({ paymentIntent: paymentIntent.client_secret, customer });
-    } catch (error) {
-      if (error.type === 'StripeInvalidRequestError') {
-        return res.status(400).json({ message: 'Invalid request: ' + error.message });
-      }
-      res.status(error.code || 500).json({ message: error.message });
+    if (existingCustomers.data.length > 0) {
+      customer = existingCustomers.data[0];
+    } else {
+      customer = await stripe.customers.create({
+        email,
+        name,
+        description: 'Client created for payment',
+      });
     }
-}
 
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount,
+      currency: "aud",
+      customer: customer.id,
+      automatic_payment_methods: {
+        enabled: true,
+      },
+      metadata: {
+        offer_id: offerId,
+        provider_account_id: providerAccountId,
+      }
+    });
+
+    offer.payment = {
+      paymentIntentId: paymentIntent.id,
+      providerStripeAccountId: providerAccountId,
+      amount: amount,
+      released: false,
+    };
+    await offer.save();
+
+    res.status(200).json({ message: 'paymentIntent successful.', paymentIntent: paymentIntent.client_secret, });
+
+  } catch (error) {
+    console.error("Stripe error:", error);
+    if (error.type === 'StripeInvalidRequestError') {
+      return res.status(400).json({ message: 'Invalid request: ' + error.message });
+    }
+    res.status(error.statusCode || 500).json({ message: error.message });
+  }
+};
 
 const createStripeAccount = async (req, res) => {
   
@@ -191,12 +195,47 @@ const checkStripeAccountStatus = async (req,res) => {
   }
 }
 
+const release = async (req, res) => {
+  try {
+    const { offerId } = req.body;
+
+    const offer = await Offer.findById(offerId);
+    if (!offer) return res.status(404).json({ message: "Offer not found" });
+
+    if (!offer.payment || offer.payment.released) {
+      return res.status(400).json({ message: "Payment already released or not found" });
+    }
+
+    const transfer = await stripe.transfers.create({
+      amount: offer.payment.amount,
+      currency: "aud",
+      destination: offer.payment.providerStripeAccountId,
+      metadata: {
+        payment_intent: offer.payment.paymentIntentId,
+        offer_id: offer._id.toString(),
+      },
+    });
+
+    offer.payment.released = true;
+    offer.payment.transferId = transfer.id;
+    await offer.save();
+
+    res.status(200).json({ message: 'Payment released to provider', transferId: transfer.id, });
+
+  } catch (error) {
+    console.error("Error releasing payment:", error.message);
+    res.status(error.statusCode || 500).json({ message: error.message });
+  }
+};
+
+
 module.exports = {
- intent,
- createStripeAccount,
- createStripeAccountLink,
- returnUrl,
- refreshUrl,
- deleteStripeUser,
- checkStripeAccountStatus
+  intent,
+  createStripeAccount,
+  createStripeAccountLink,
+  returnUrl,
+  refreshUrl,
+  deleteStripeUser,
+  checkStripeAccountStatus,
+  release
 }

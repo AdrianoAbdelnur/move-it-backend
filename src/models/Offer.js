@@ -30,6 +30,25 @@ const OfferSchema = new Schema({
         type: String,
         default: "Pending"
     },
+    payment: {
+        paymentIntentId: { 
+                type: String 
+            },
+        providerStripeAccountId: { 
+                type: String 
+            },
+        amount: { 
+                type: Number 
+            },
+        released: { 
+                type: Boolean, 
+                default: false 
+            },
+        transferId: { 
+                type: String 
+            }
+  }
+
 },{
     versionKey: false
 }
