@@ -11,7 +11,7 @@ const addOffer = async(req, res) => {
             await newOffer.save();
             newOffer = await Offer.findById(newOffer._id).populate('post').populate({
                 path: 'owner',
-                select: '_id given_name family_name review transportInfo.vehicle expoPushToken'
+                select: '_id given_name family_name review transportInfo.vehicle transportInfo.stripeAccount expoPushToken'
             });;
             
             const recipient = newOffer.post.owner;
