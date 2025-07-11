@@ -72,7 +72,7 @@ const setupSocket = (server) => {
               io.to(socketId).emit("pingCheck");
             }
           }
-        }, 30000); 
+        }, 45000); 
       };
 
 

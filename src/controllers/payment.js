@@ -107,20 +107,17 @@ const createStripeAccountLink = async (req, res) => {
 };
 
 const returnUrl = async (req, res) => {
-  console.log("returnUrl", req)
   const deepLink = 'cacapp://stripe-return';
   res.redirect(deepLink);
 };
 
 const refreshUrl = async (req, res) => {
-  console.log("refreshUrl", req)
   const deepLink = 'cacapp://stripe-refresh';
   res.redirect(deepLink);
 };
 
 const deleteStripeUser = async (req, res) => {
   const { email: targetEmail } = req.body;
-  console.log("targetEmail",targetEmail)
   let hasMore = true;
   let startingAfter = null;
   let deletedCount = 0;
@@ -134,11 +131,9 @@ const deleteStripeUser = async (req, res) => {
 
       for (const account of accounts.data) {
         if (account.email === targetEmail) {
-          console.log(`Eliminando cuenta: ${account.id} (${account.email})`);
           try {
             await stripe.accounts.del(account.id);
             deletedCount++;
-            console.log(`✅ Eliminada: ${account.id}`);
           } catch (err) {
             console.log(`❌ Error al eliminar ${account.id}:`, err.message);
           }
@@ -202,6 +197,13 @@ const release = async (req, res) => {
     const offer = await Offer.findById(offerId);
     if (!offer) return res.status(404).json({ message: "Offer not found" });
 
+    const userPost = await userPost.findById(offer.post);
+    if (!userPost) return res.status(404).json({ message: "Post not found" });
+
+    if (userPost.owner.toString() !== req.userId) {
+      return res.status(403).json({ message: "Unauthorized: you are not the owner of this post" });
+    }
+
     if (!offer.payment || offer.payment.released) {
       return res.status(400).json({ message: "Payment already released or not found" });
     }
@@ -220,14 +222,13 @@ const release = async (req, res) => {
     offer.payment.transferId = transfer.id;
     await offer.save();
 
-    res.status(200).json({ message: 'Payment released to provider', transferId: transfer.id, });
+    res.status(200).json({ message: 'Payment released to provider', transferId: transfer.id });
 
   } catch (error) {
     console.error("Error releasing payment:", error.message);
     res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
-
 
 module.exports = {
   intent,

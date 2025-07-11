@@ -171,7 +171,6 @@ const selectOffer = async(req, res) => {
             }
           });
         if (postFound) {
-          console.log("OWNER ID",postFound.offerSelected.owner._id, "POST ACTUALIZADO",postFound)
             OfferSelected(postFound.offerSelected.owner._id, postFound)
             res.status(200).json({message: 'Offer selected', postFound})
         }    
