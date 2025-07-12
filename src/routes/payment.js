@@ -10,6 +10,6 @@ router.get('/returnUrl', returnUrl)
 router.get('/refreshUrl', refreshUrl)
 router.post('/deleteStripeUser', deleteStripeUser)
 router.get('/checkStripeAccountStatus/:id', checkStripeAccountStatus)
-router.post('release', decodeToken, release);
+router.post('/release', decodeToken, release);
 
 module.exports = router; 
