@@ -1,5 +1,6 @@
 const Offer = require('../models/Offer');
 const User = require('../models/User');
+const UserPost = require('../models/UserPost');
 
 require('dotenv').config();
 const stripe = require("stripe")( process.env.STRIPE_KEY)
@@ -197,7 +198,7 @@ const release = async (req, res) => {
     const offer = await Offer.findById(offerId);
     if (!offer) return res.status(404).json({ message: "Offer not found" });
 
-    const userPost = await userPost.findById(offer.post);
+    const userPost = await UserPost.findById(offer.post);
     if (!userPost) return res.status(404).json({ message: "Post not found" });
 
     if (userPost.owner.toString() !== req.userId) {
