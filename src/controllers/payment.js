@@ -7,52 +7,56 @@ const stripe = require("stripe")( process.env.STRIPE_KEY)
 
 const intent = async (req, res) => {
   try {
-    const { amount, offerId, email, name, providerAccountId } = req.body;
+    const { amount, profitMargin, offerId, email, name, providerAccountId } = req.body;
 
     const offer = await Offer.findById(offerId);
     if (!offer) return res.status(404).json({ message: "Offer not found" });
 
+    const commission = Math.floor(amount * profitMargin);
+    const totalAmount = amount + commission;
+
     let customer;
     const existingCustomers = await stripe.customers.list({ email, limit: 1 });
-    customer = existingCustomers.data[0] || await stripe.customers.create({ email, name });
 
-    const commission = Math.floor(amount * 0.20); // 20%
-    const providerAmount = amount - commission;
+    if (existingCustomers.data.length > 0) {
+      customer = existingCustomers.data[0];
+    } else {
+      customer = await stripe.customers.create({
+        email,
+        name,
+        description: 'Client for payment',
+      });
+    }
 
     const paymentIntent = await stripe.paymentIntents.create({
-      amount,
+      amount: totalAmount,
       currency: "aud",
       customer: customer.id,
-      capture_method: "manual",
       automatic_payment_methods: { enabled: true },
-      transfer_data: {
-        destination: providerAccountId,
-        amount: providerAmount,
-      },
       metadata: {
         offer_id: offerId,
         provider_account_id: providerAccountId,
       },
     });
 
+  
     offer.payment = {
       paymentIntentId: paymentIntent.id,
       providerStripeAccountId: providerAccountId,
       amount,
       commission,
       released: false,
-      captured: false,
     };
     await offer.save();
 
-    res.status(200).json({
-      message: 'PaymentIntent created successfully',
-      clientSecret: paymentIntent.client_secret,
+    return res.status(200).json({
+      message: "PaymentIntent created successfully",
+      paymentIntent: paymentIntent.client_secret,
     });
 
   } catch (error) {
-    console.error("Stripe error:", error);
-    res.status(error.statusCode || 500).json({ message: error.message });
+    console.error("Stripe intent error:", error);
+    return res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
