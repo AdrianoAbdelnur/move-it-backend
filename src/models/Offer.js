@@ -1,59 +1,75 @@
-const {model, Schema, default: mongoose} = require("mongoose")
+const { model, Schema, default: mongoose } = require("mongoose");
 
 const OfferSchema = new Schema({
-    owner: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
+  owner: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  post: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'UserPost'
+  },
+  price: {
+    type: Number
+  },
+  expiredTime: {
+    type: Date
+  },
+  offerDetails: {
+    type: String
+  },
+  createAt: {
+    type: Date,
+    default: Date.now(),
+  },
+  isDeleted: {
+    type: Boolean,
+    default: false,
+  },
+  status: {
+    type: String,
+    default: "Pending"
+  },
+  payment: {
+    paymentIntentId: { 
+      type: String,
+      required: true,
     },
-    post: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'UserPost'
+    providerStripeAccountId: { 
+      type: String,
+      required: true,
     },
-    price: {
-        type: Number
+    amount: { 
+      type: Number, 
+      required: true,
     },
-    expiredTime: {
-        type: Date
+    commission: {
+      type: Number, 
+      required: true,
     },
-    offerDetails: {
-        type: String
+    released: { 
+      type: Boolean, 
+      default: false,
     },
-    createAt: {
-        type: Date,
-        default: Date.now(),
+    releasedAt: {
+      type: Date,
     },
-    isDeleted: {
-        type: Boolean,
-        default: false,
+    captured: {
+      type: Boolean,
+      default: false,
     },
-    status: {
-        type: String,
-        default: "Pending"
+    capturedAt: {
+      type: Date,
     },
-    payment: {
-        paymentIntentId: { 
-                type: String 
-            },
-        providerStripeAccountId: { 
-                type: String 
-            },
-        amount: { 
-                type: Number 
-            },
-        released: { 
-                type: Boolean, 
-                default: false 
-            },
-        transferId: { 
-                type: String 
-            }
+    transferId: { 
+      type: String 
+    }
   }
 
-},{
-    versionKey: false
-}
-)
+}, {
+  versionKey: false
+});
 
-const Offer = model ('Offer', OfferSchema);
+const Offer = model('Offer', OfferSchema);
 
-module.exports= Offer;
+module.exports = Offer;
