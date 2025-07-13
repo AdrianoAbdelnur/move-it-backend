@@ -33,19 +33,15 @@ const OfferSchema = new Schema({
   payment: {
     paymentIntentId: { 
       type: String,
-      required: true,
     },
     providerStripeAccountId: { 
       type: String,
-      required: true,
     },
     amount: { 
       type: Number, 
-      required: true,
     },
     commission: {
       type: Number, 
-      required: true,
     },
     released: { 
       type: Boolean, 
