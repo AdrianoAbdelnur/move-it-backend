@@ -195,6 +195,10 @@ const release = async (req, res) => {
   try {
     const { offerId } = req.body;
 
+
+    const balance = await stripe.balance.retrieve();
+  console.log("BALANCE",balance);
+
     const offer = await Offer.findById(offerId);
     if (!offer) return res.status(404).json({ message: "Offer not found" });
 
