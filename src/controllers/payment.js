@@ -13,49 +13,45 @@ const intent = async (req, res) => {
     if (!offer) return res.status(404).json({ message: "Offer not found" });
 
     let customer;
-    const existingCustomers = await stripe.customers.list({
-      email,
-      limit: 1,
-    });
+    const existingCustomers = await stripe.customers.list({ email, limit: 1 });
+    customer = existingCustomers.data[0] || await stripe.customers.create({ email, name });
 
-    if (existingCustomers.data.length > 0) {
-      customer = existingCustomers.data[0];
-    } else {
-      customer = await stripe.customers.create({
-        email,
-        name,
-        description: 'Client created for payment',
-      });
-    }
+    const commission = Math.floor(amount * 0.20); // 20%
+    const providerAmount = amount - commission;
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount,
       currency: "aud",
       customer: customer.id,
-      automatic_payment_methods: {
-        enabled: true,
+      capture_method: "manual",
+      automatic_payment_methods: { enabled: true },
+      transfer_data: {
+        destination: providerAccountId,
+        amount: providerAmount,
       },
       metadata: {
         offer_id: offerId,
         provider_account_id: providerAccountId,
-      }
+      },
     });
 
     offer.payment = {
       paymentIntentId: paymentIntent.id,
       providerStripeAccountId: providerAccountId,
-      amount: amount,
+      amount,
+      commission,
       released: false,
+      captured: false,
     };
     await offer.save();
 
-    res.status(200).json({ message: 'paymentIntent successful.', paymentIntent: paymentIntent.client_secret, });
+    res.status(200).json({
+      message: 'PaymentIntent created successfully',
+      clientSecret: paymentIntent.client_secret,
+    });
 
   } catch (error) {
     console.error("Stripe error:", error);
-    if (error.type === 'StripeInvalidRequestError') {
-      return res.status(400).json({ message: 'Invalid request: ' + error.message });
-    }
     res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
@@ -195,10 +191,6 @@ const release = async (req, res) => {
   try {
     const { offerId } = req.body;
 
-
-    const balance = await stripe.balance.retrieve();
-  console.log("BALANCE",balance);
-
     const offer = await Offer.findById(offerId);
     if (!offer) return res.status(404).json({ message: "Offer not found" });
 
@@ -206,31 +198,25 @@ const release = async (req, res) => {
     if (!userPost) return res.status(404).json({ message: "Post not found" });
 
     if (userPost.owner.toString() !== req.userId) {
-      return res.status(403).json({ message: "Unauthorized: you are not the owner of this post" });
+      return res.status(403).json({ message: "Unauthorized: you're not the owner" });
     }
 
-    if (!offer.payment || offer.payment.released) {
+    if (!offer.payment || offer.payment.released || offer.payment.captured) {
       return res.status(400).json({ message: "Payment already released or not found" });
     }
 
-    const transfer = await stripe.transfers.create({
-      amount: offer.payment.amount,
-      currency: "aud",
-      destination: offer.payment.providerStripeAccountId,
-      metadata: {
-        payment_intent: offer.payment.paymentIntentId,
-        offer_id: offer._id.toString(),
-      },
-    });
+    const captured = await stripe.paymentIntents.capture(offer.payment.paymentIntentId);
 
     offer.payment.released = true;
-    offer.payment.transferId = transfer.id;
+    offer.payment.releasedAt = new Date();
+    offer.payment.captured = true;
+    offer.payment.capturedAt = new Date();
     await offer.save();
 
-    res.status(200).json({ message: 'Payment released to provider', transferId: transfer.id });
+    res.status(200).json({ message: 'Payment successfully released and captured' });
 
   } catch (error) {
-    console.error("Error releasing payment:", error.message);
+    console.error("Error capturing payment:", error.message);
     res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
