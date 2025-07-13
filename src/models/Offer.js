@@ -32,36 +32,23 @@ const OfferSchema = new Schema({
     },
     payment: {
         paymentIntentId: { 
-            type: String, 
-            required: true,
-        },
+                type: String 
+            },
         providerStripeAccountId: { 
-            type: String, 
-            required: true,
-        },
+                type: String 
+            },
         amount: { 
-            type: Number,
-            required: true,
-        },
-        commission: {
-            type: Number,
-            required: true,
-        },
+                type: Number 
+            },
         released: { 
-            type: Boolean, 
-            default: false,
-        },
-        releasedAt: {
-            type: Date,
-        },
-        captured: {
-            type: Boolean,
-            default: false,
-        },
-        capturedAt: {
-            type: Date,
-        }
-    }
+                type: Boolean, 
+                default: false 
+            },
+        transferId: { 
+                type: String 
+            }
+  }
+
 },{
     versionKey: false
 }
