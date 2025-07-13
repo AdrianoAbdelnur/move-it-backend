@@ -31,23 +31,37 @@ const OfferSchema = new Schema({
         default: "Pending"
     },
     payment: {
-        paymentIntentId: { 
-                type: String 
-            },
-        providerStripeAccountId: { 
-                type: String 
-            },
-        amount: { 
-                type: Number 
-            },
-        released: { 
-                type: Boolean, 
-                default: false 
-            },
-        transferId: { 
-                type: String 
-            }
+  paymentIntentId: { 
+    type: String, 
+    required: true,
+  },
+  providerStripeAccountId: { 
+    type: String, 
+    required: true,
+  },
+  amount: { 
+    type: Number,
+    required: true,
+  },
+  commission: {
+    type: Number,
+    required: true,
+  },
+  released: { 
+    type: Boolean, 
+    default: false,
+  },
+  releasedAt: {
+    type: Date,
+  },
+  captured: {
+    type: Boolean,
+    default: false,
+  },
+  capturedAt: {
+    type: Date,
   }
+}
 
 },{
     versionKey: false
