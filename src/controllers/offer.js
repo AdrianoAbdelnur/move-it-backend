@@ -20,7 +20,8 @@ const addOffer = async(req, res) => {
             res.status(200).json({message: 'Offer sent successfully', newOffer})
         }else res.status(409).json({message:'offer already made', offerFound})
     } catch (error) {
-        res.status(error.code || 500).json({message : error.message})
+        console.error("🔥 Error en addOffer:", error);
+        res.status(error.statusCode || 500).json({ message: error.message });
     }
 }
 
