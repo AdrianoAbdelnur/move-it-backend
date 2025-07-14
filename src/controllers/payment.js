@@ -21,17 +21,15 @@ const intent = async (req, res) => {
     if (existingCustomers.data.length > 0) {
       customer = existingCustomers.data[0];
     } else {
-      customer = await stripe.customers.create({
-        email,
-        name,
-        description: 'Client for payment',
-      });
+      customer = await stripe.customers.create({ email, name });
     }
 
+  
     const paymentIntent = await stripe.paymentIntents.create({
       amount: totalAmount,
       currency: "aud",
       customer: customer.id,
+      capture_method: "manual",
       automatic_payment_methods: { enabled: true },
       metadata: {
         offer_id: offerId,
@@ -39,18 +37,22 @@ const intent = async (req, res) => {
       },
     });
 
-  
+    await stripe.paymentIntents.capture(paymentIntent.id);
+
     offer.payment = {
       paymentIntentId: paymentIntent.id,
       providerStripeAccountId: providerAccountId,
       amount,
       commission,
+      captured: true,
+      capturedAt: new Date(),
       released: false,
     };
+
     await offer.save();
 
     return res.status(200).json({
-      message: "PaymentIntent created successfully",
+      message: "PaymentIntent created and captured",
       paymentIntent: paymentIntent.client_secret,
     });
 
@@ -198,30 +200,41 @@ const release = async (req, res) => {
     const offer = await Offer.findById(offerId);
     if (!offer) return res.status(404).json({ message: "Offer not found" });
 
+    if (!offer.payment || offer.payment.released) {
+      return res.status(400).json({ message: "Payment already released or not found" });
+    }
+
     const userPost = await UserPost.findById(offer.post);
     if (!userPost) return res.status(404).json({ message: "Post not found" });
 
     if (userPost.owner.toString() !== req.userId) {
-      return res.status(403).json({ message: "Unauthorized: you're not the owner" });
+      return res.status(403).json({ message: "Unauthorized" });
     }
 
-    if (!offer.payment || offer.payment.released || offer.payment.captured) {
-      return res.status(400).json({ message: "Payment already released or not found" });
-    }
-
-    const captured = await stripe.paymentIntents.capture(offer.payment.paymentIntentId);
+    const transfer = await stripe.transfers.create({
+      amount: offer.payment.amount,
+      currency: "aud",
+      destination: offer.payment.providerStripeAccountId,
+      metadata: {
+        payment_intent: offer.payment.paymentIntentId,
+        offer_id: offer._id.toString(),
+      },
+    });
 
     offer.payment.released = true;
     offer.payment.releasedAt = new Date();
-    offer.payment.captured = true;
-    offer.payment.capturedAt = new Date();
+    offer.payment.transferId = transfer.id;
+
     await offer.save();
 
-    res.status(200).json({ message: 'Payment successfully released and captured' });
+    return res.status(200).json({
+      message: "Payment released to provider",
+      transferId: transfer.id,
+    });
 
   } catch (error) {
-    console.error("Error capturing payment:", error.message);
-    res.status(error.statusCode || 500).json({ message: error.message });
+    console.error("Error releasing payment:", error);
+    return res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
