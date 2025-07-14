@@ -24,12 +24,11 @@ const intent = async (req, res) => {
       customer = await stripe.customers.create({ email, name });
     }
 
-  
     const paymentIntent = await stripe.paymentIntents.create({
       amount: totalAmount,
       currency: "aud",
       customer: customer.id,
-      capture_method: "manual",
+      capture_method: "manual",  // Está bien dejarlo manual
       automatic_payment_methods: { enabled: true },
       metadata: {
         offer_id: offerId,
@@ -37,22 +36,19 @@ const intent = async (req, res) => {
       },
     });
 
-    await stripe.paymentIntents.capture(paymentIntent.id);
-
     offer.payment = {
       paymentIntentId: paymentIntent.id,
       providerStripeAccountId: providerAccountId,
       amount,
       commission,
-      captured: true,
-      capturedAt: new Date(),
+      captured: false,
       released: false,
     };
 
     await offer.save();
 
     return res.status(200).json({
-      message: "PaymentIntent created and captured",
+      message: "PaymentIntent created successfully",
       paymentIntent: paymentIntent.client_secret,
     });
 
@@ -211,6 +207,10 @@ const release = async (req, res) => {
       return res.status(403).json({ message: "Unauthorized" });
     }
 
+    // ⬇️ AHORA sí capturás el dinero
+    await stripe.paymentIntents.capture(offer.payment.paymentIntentId);
+
+    // ⬇️ Luego hacés la transferencia al proveedor
     const transfer = await stripe.transfers.create({
       amount: offer.payment.amount,
       currency: "aud",
@@ -222,13 +222,14 @@ const release = async (req, res) => {
     });
 
     offer.payment.released = true;
+    offer.payment.captured = true;
+    offer.payment.capturedAt = new Date();
     offer.payment.releasedAt = new Date();
     offer.payment.transferId = transfer.id;
-
     await offer.save();
 
     return res.status(200).json({
-      message: "Payment released to provider",
+      message: "Payment captured and released to provider",
       transferId: transfer.id,
     });
 
