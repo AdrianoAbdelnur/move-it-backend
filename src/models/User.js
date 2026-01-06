@@ -14,6 +14,7 @@ const UserSchema = new Schema({
     password: {
         type: String
     },
+    appleSub: { type: String, unique: true, sparse: true, index: true },
     createAt: {
         type: Date,
         default: Date.now(),
