@@ -5,6 +5,11 @@ const emailer = require('../helpers/emailer');
 require('dotenv').config();
 const crypto = require('crypto');
 
+const { createRemoteJWKSet, jwtVerify } = require('jose');
+const { URL } = require('url');
+
+const appleJwks = createRemoteJWKSet(new URL('https://appleid.apple.com/auth/keys'));
+
 const registerUser = async (req, res) => {
     try {
         const verificationCode = crypto.randomBytes(6).toString('hex').slice(0, 6).toUpperCase();
@@ -63,7 +68,9 @@ const googleLogin = async (req, res) => {
             {
                 return res.status(404).json({ message: 'User not found.',  user, idToken});
             }
-        if (userFound.isDeleted === true) res.status(400).json({ message: 'User was deleted.' });
+        if (userFound && userFound.isDeleted === true) {
+            return res.status(400).json({ message: 'User was deleted.' });
+            }
         if (userFound) {
             const payload = {
                 user: {
@@ -101,6 +108,71 @@ const googleRegister = async (req, res) => {
         return res.status(error.code || 500).json({ message: error.message })
     }
 }
+
+const appleAuth = async (req, res) => {
+  try {
+    const { identityToken, fullName, role } = req.body;
+
+    if (!identityToken) return res.status(400).json({ message: 'Missing identityToken.' });
+
+    const { payload } = await jwtVerify(identityToken, appleJwks, {
+      issuer: 'https://appleid.apple.com',
+      audience: 'com.adna88.CaCapp'
+    });
+
+    const appleSub = payload.sub;
+    const email = payload.email;
+
+    if (!appleSub) return res.status(400).json({ message: 'Invalid Apple token (missing sub).' });
+
+    let userFound = await User.findOne({ appleSub, isDeleted: false });
+
+    if (!userFound && email) {
+      userFound = await User.findOne({ email, isDeleted: false });
+      if (userFound) {
+        userFound.appleSub = appleSub;
+        if (userFound.validatedMail !== true) userFound.validatedMail = true;
+        await userFound.save();
+      }
+    }
+
+    if (!userFound && !email) {
+      return res.status(400).json({
+        message: 'Apple did not provide an email address. Please try again or use another login method.'
+      });
+    }
+
+
+    if (!userFound) {
+      const userToRegister = {
+        role,
+        email,
+        validatedMail: true,
+        appleSub
+      };
+
+      if (fullName?.givenName) userToRegister.given_name = fullName.givenName;
+      if (fullName?.familyName) userToRegister.family_name = fullName.familyName;
+
+      userFound = await new User(userToRegister).save();
+    }
+
+    const tokenPayload = {
+      user: {
+        id: userFound._id,
+        role: userFound.role
+      }
+    };
+
+    jwt.sign(tokenPayload, process.env.SECRET_WORD, (error, token) => {
+      if (error) throw error;
+      return res.status(200).json({ message: 'User successfully logged in.', token });
+    });
+  } catch (error) {
+    return res.status(401).json({ message: 'Invalid Apple token.' });
+  }
+};
+
 
 const getUser = async (req, res) => {
     try {
@@ -493,5 +565,6 @@ module.exports = {
     checkValidationCode,
     updatePass,
     googleLogin,
-    googleRegister
+    googleRegister,
+    appleAuth
 }
