@@ -109,7 +109,7 @@ const googleRegister = async (req, res) => {
     }
 }
 
-const appleAuth = async (req, res) => {
+/* const appleAuth = async (req, res) => {
   try {
     const { identityToken, fullName, role } = req.body;
 
@@ -171,7 +171,110 @@ const appleAuth = async (req, res) => {
   } catch (error) {
     return res.status(401).json({ message: 'Invalid Apple token.' });
   }
+}; */
+    const appleLogin = async (req, res) => {
+    try {
+        const { identityToken, fullName } = req.body;
+
+        if (!identityToken) {
+        return res.status(400).json({ message: "Missing identityToken." });
+        }
+
+        const { payload } = await jwtVerify(identityToken, appleJwks, {
+        issuer: "https://appleid.apple.com",
+        audience: "com.adna88.CaCapp",
+        });
+
+        const appleSub = payload.sub;
+        const email = payload.email;
+
+        if (!appleSub) {
+        return res.status(400).json({ message: "Invalid Apple token (missing sub)." });
+        }
+
+        let userFound = await User.findOne({ appleSub, isDeleted: false });
+
+        if (!userFound && email) {
+        userFound = await User.findOne({ email, isDeleted: false });
+        if (userFound) {
+            userFound.appleSub = appleSub;
+            if (userFound.validatedMail !== true) userFound.validatedMail = true;
+            await userFound.save();
+        }
+        }
+
+        if (!userFound) {
+        const given_name = fullName?.givenName || "";
+        const family_name = fullName?.familyName || "";
+
+        return res.status(404).json({
+            message: "User not found.",
+            user: { email: email || "", given_name, family_name, appleSub },
+        });
+        }
+
+        const tokenPayload = {
+        user: { id: userFound._id, role: userFound.role },
+        };
+
+        jwt.sign(tokenPayload, process.env.SECRET_WORD, (error, token) => {
+        if (error) throw error;
+        return res.status(200).json({ message: "User successfully logged in.", token });
+        });
+    } catch (error) {
+        return res.status(401).json({ message: "Invalid Apple token." });
+    }
+    };
+
+    const appleRegister = async (req, res) => {
+        try {
+            const { identityToken, fullName, role } = req.body;
+
+            if (!identityToken) return res.status(400).json({ message: "Missing identityToken." });
+            if (!role) return res.status(400).json({ message: "Missing role." });
+
+            const { payload } = await jwtVerify(identityToken, appleJwks, {
+            issuer: "https://appleid.apple.com",
+            audience: "com.adna88.CaCapp",
+            });
+
+            const appleSub = payload.sub;
+            const email = payload.email;
+
+            if (!appleSub) return res.status(400).json({ message: "Invalid Apple token (missing sub)." });
+
+            if (!email) {
+            return res.status(400).json({
+                message:
+                "Apple did not provide an email address. Please try again or use another login method.",
+            });
+            }
+
+            const already = await User.findOne({
+            $or: [{ appleSub }, { email }],
+            isDeleted: false,
+            });
+
+            if (already) return res.status(400).json({ message: "User already exists." });
+
+            const userToRegister = {
+            role,
+            email,
+            validatedMail: true,
+            appleSub,
+            };
+
+            if (fullName?.givenName) userToRegister.given_name = fullName.givenName;
+            if (fullName?.familyName) userToRegister.family_name = fullName.familyName;
+
+            await new User(userToRegister).save();
+            return res.status(200).json({ message: "User successfully created." });
+        } catch (error) {
+            return res.status(401).json({ message: "Invalid Apple token." });
+        }
 };
+
+
 
 
 const getUser = async (req, res) => {
@@ -566,5 +669,6 @@ module.exports = {
     updatePass,
     googleLogin,
     googleRegister,
-    appleAuth
+    appleLogin,
+    appleRegister
 }
