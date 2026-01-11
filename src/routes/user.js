@@ -1,5 +1,5 @@
 const express = require("express");
-const { registerUser, loginUser, getUser, getAllUsers, verifyTransportFields, updateFields, updateReviews, getImage, addCancelled, updateExpoPushToken, generateNewValidationCode, validateMail, checkValidationCode, updatePass, googleLogin, googleRegister , appleAuth} = require("../controllers/user");
+const { registerUser, loginUser, getUser, getAllUsers, verifyTransportFields, updateFields, updateReviews, getImage, addCancelled, updateExpoPushToken, generateNewValidationCode, validateMail, checkValidationCode, updatePass, googleLogin, googleRegister , appleLogin, appleRegister} = require("../controllers/user");
 const { validate } = require("../helpers/validate");
 const { verifyRegisterFields, verifyLoginFields, checkCancellations } = require("../middlewares/users");
 const { decodeToken, adminRequiredValidation, decodeFirebaseToken } = require("../middlewares/auth");
@@ -9,7 +9,8 @@ router.post('/register', verifyRegisterFields(), validate, registerUser);
 router.post('/login', verifyLoginFields(), validate, loginUser);
 router.post('/googleLogin', decodeFirebaseToken , googleLogin);
 router.post('/googleRegister', decodeFirebaseToken , googleRegister);
-router.post('/apple', appleAuth);
+router.post("/appleLogin", appleLogin);
+router.post("/appleRegister", appleRegister);
 
 
 router.get('/verifyFields', decodeToken, verifyTransportFields);
