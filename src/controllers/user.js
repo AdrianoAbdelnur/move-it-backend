@@ -109,69 +109,6 @@ const googleRegister = async (req, res) => {
     }
 }
 
-/* const appleAuth = async (req, res) => {
-  try {
-    const { identityToken, fullName, role } = req.body;
-
-    if (!identityToken) return res.status(400).json({ message: 'Missing identityToken.' });
-
-    const { payload } = await jwtVerify(identityToken, appleJwks, {
-      issuer: 'https://appleid.apple.com',
-      audience: 'com.adna88.CaCapp'
-    });
-
-    const appleSub = payload.sub;
-    const email = payload.email;
-
-    if (!appleSub) return res.status(400).json({ message: 'Invalid Apple token (missing sub).' });
-
-    let userFound = await User.findOne({ appleSub, isDeleted: false });
-
-    if (!userFound && email) {
-      userFound = await User.findOne({ email, isDeleted: false });
-      if (userFound) {
-        userFound.appleSub = appleSub;
-        if (userFound.validatedMail !== true) userFound.validatedMail = true;
-        await userFound.save();
-      }
-    }
-
-    if (!userFound && !email) {
-      return res.status(400).json({
-        message: 'Apple did not provide an email address. Please try again or use another login method.'
-      });
-    }
-
-
-    if (!userFound) {
-      const userToRegister = {
-        role,
-        email,
-        validatedMail: true,
-        appleSub
-      };
-
-      if (fullName?.givenName) userToRegister.given_name = fullName.givenName;
-      if (fullName?.familyName) userToRegister.family_name = fullName.familyName;
-
-      userFound = await new User(userToRegister).save();
-    }
-
-    const tokenPayload = {
-      user: {
-        id: userFound._id,
-        role: userFound.role
-      }
-    };
-
-    jwt.sign(tokenPayload, process.env.SECRET_WORD, (error, token) => {
-      if (error) throw error;
-      return res.status(200).json({ message: 'User successfully logged in.', token });
-    });
-  } catch (error) {
-    return res.status(401).json({ message: 'Invalid Apple token.' });
-  }
-}; */
     const appleLogin = async (req, res) => {
     try {
         const { identityToken, fullName } = req.body;
@@ -273,6 +210,57 @@ const googleRegister = async (req, res) => {
             return res.status(401).json({ message: "Invalid Apple token." });
         }
 };
+
+
+    const deleteMyAccount = async (req, res) => {
+        try {
+            const user = await User.findById(req.userId);
+            if (!user) return res.status(404).json({ message: "User not found." });
+            if (user.isDeleted) return res.status(400).json({ message: "User already deleted." });
+
+            const rand = crypto.randomBytes(8).toString("hex");
+            const deletedEmail = `deleted+${user._id.toString()}+${rand}@callacar.invalid`;
+
+            await User.updateOne(
+            { _id: req.userId },
+            {
+                $set: {
+                isDeleted: true,
+                email: deletedEmail,
+                validatedMail: false,
+                appleSub: null,
+                expoPushToken: null,
+                given_name: "Deleted",
+                family_name: "User",
+                infoCompletedFlag: false,
+                authorizedTransport: false,
+                verificationInfo: {
+                    verificationCode: null,
+                    expirationTime: null,
+                    attempts: 0,
+                    blockTime: null,
+                    isPermanentlyBlocked: false,
+                },
+                "transportInfo.stripeAccount.accountId": null,
+                "transportInfo.stripeAccount.validatedAccount": false,
+                },
+                $unset: {
+                "transportInfo.cargoAreaImg": "",
+                "transportInfo.generalImg": "",
+                "transportInfo.licenseFrontImg": "",
+                "transportInfo.licenseBackImg": "",
+                "transportInfo.profilePhotoImg": "",
+                "transportInfo.policeCheckPdf": "",
+                },
+            }
+            );
+
+            return res.status(200).json({ message: "Account deleted." });
+        } catch (error) {
+            return res.status(error.code || 500).json({ message: error.message });
+        }
+};
+
 
 
 
@@ -654,6 +642,7 @@ module.exports = {
     loginUser,
     getUser,
     getAllUsers,
+    deleteMyAccount,
     deleteUser,
     updateUser,
     loginStatus,
