@@ -4,23 +4,16 @@ const { OAuth2Client } = require('google-auth-library');
 
 
 const decodeToken = async (req, res, next) => {
-  try {
-    const token = req.header("Authorization");
-    if (!token) return res.status(401).json({ message: "Token not found" });
-
-    const { user } = jwt.verify(token, process.env.SECRET_WORD);
-
-    const userFound = await User.findById(user.id).select("isDeleted role");
-    if (!userFound) return res.status(401).json({ message: "User not found" });
-    if (userFound.isDeleted) return res.status(401).json({ message: "Account deleted" });
-
-    req.userId = userFound._id;
-    req.userRole = userFound.role;
-
-    next();
-  } catch (error) {
-    return res.status(401).json({ message: error.message });
-  }
+    try {
+        const token = req.header('Authorization');
+        if (!token) return res.status(401).json({ message: 'Token not found' })
+        const {user} = jwt.verify(token, process.env.SECRET_WORD);
+        req.userId = user.id;
+        req.userRole = user.role;
+        next();
+    } catch (error) {
+        return res.status(401).json({ message: error.message });
+    }
 };
 
 const adminRequiredValidation = (req, res, next) => {
