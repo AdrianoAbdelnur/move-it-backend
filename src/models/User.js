@@ -47,7 +47,7 @@ const UserSchema = new Schema({
     terms: {
         accepted: { type: Boolean, default: false },
         acceptedAt: { type: Date, default: null },
-        version: { type: String, default: null },
+        version: { type: String, default: V1 },
         source: { type: String, default: null },
     },
     },
