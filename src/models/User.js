@@ -43,6 +43,14 @@ const UserSchema = new Schema({
             default: false 
         }
     },
+    consents: {
+    terms: {
+        accepted: { type: Boolean, default: false },
+        acceptedAt: { type: Date, default: null },
+        version: { type: String, default: null },
+        source: { type: String, default: null },
+    },
+    },
     isDeleted: {
         type: Boolean,
         default: false,

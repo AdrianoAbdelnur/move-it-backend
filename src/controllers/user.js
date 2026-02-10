@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const emailer = require('../helpers/emailer');
 require('dotenv').config();
 const crypto = require('crypto');
+const { getTermsStatus, TERMS_VERSION } = require("../helpers/terms");
 
 const { createRemoteJWKSet, jwtVerify } = require('jose');
 const { URL } = require('url');
@@ -35,61 +36,54 @@ const registerUser = async (req, res) => {
 };
 
 const loginUser = async (req, res) => {
-    try {
-        const { email, password } = req.body;
-        const userFound = await User.findOne({ email, isDeleted: false });
-        if (!userFound) return res.status(400).json({ message: 'Incorrect user credentials.' });
-        const loginSucceed = await bcryptjs.compare(password, userFound?.password);
-        if (!loginSucceed) return res.status(400).json({ message: 'Incorrect user credentials.' });
-        const payload = {
-            user: {
-                id: userFound._id,
-                role: userFound.role,
-            },
-        };
-        jwt.sign(payload, process.env.SECRET_WORD, (error, token) => {
-            if (error) {
-                throw error;
-            }
-            res.status(200).json({ message: 'User successfully logged in.', token });
-        })
-    } catch (error) {
-        res.status(error.code || 500).json({ message: error.message })
-    }
+  try {
+    const { email, password } = req.body;
+
+    const userFound = await User.findOne({ email, isDeleted: false });
+    if (!userFound) return res.status(400).json({ message: "Incorrect user credentials." });
+
+    const loginSucceed = await bcryptjs.compare(password, userFound?.password);
+    if (!loginSucceed) return res.status(400).json({ message: "Incorrect user credentials." });
+
+    const payload = { user: { id: userFound._id, role: userFound.role } };
+    const termsStatus = getTermsStatus(userFound);
+
+    jwt.sign(payload, process.env.SECRET_WORD, (error, token) => {
+      if (error) throw error;
+      return res.status(200).json({
+        message: "User successfully logged in.",
+        token,
+        ...termsStatus,
+      });
+    });
+  } catch (error) {
+    return res.status(error.code || 500).json({ message: error.message });
+  }
 };
 
 const googleLogin = async (req, res) => {
-    try {
-        const user = req.user
-        const idToken = req.idToken
-        const userEmail = req.user.email
-        const userFound = await User.findOne({ email: userEmail});
-        if (!userFound) 
-            {
-                return res.status(404).json({ message: 'User not found.',  user, idToken});
-            }
-        if (userFound && userFound.isDeleted === true) {
-            return res.status(400).json({ message: 'User was deleted.' });
-            }
-        if (userFound) {
-            const payload = {
-                user: {
-                    id: userFound._id,
-                    role: userFound.role,
-                },
-            };
-            jwt.sign(payload, process.env.SECRET_WORD, (error, token) => {
-                if (error) {
-                    throw error;
-                }
-                return res.status(200).json({ message: 'User successfully logged in.', token });
-            })
-        }
-        
-    } catch (error) {
-        return res.status(error.code || 500).json({ message: error.message })
-    }
-}
+  try {
+    const userEmail = req.user.email;
+    const userFound = await User.findOne({ email: userEmail });
+
+    if (!userFound) return res.status(404).json({ message: "User not found." });
+    if (userFound.isDeleted === true) return res.status(400).json({ message: "User was deleted." });
+
+    const payload = { user: { id: userFound._id, role: userFound.role } };
+    const termsStatus = getTermsStatus(userFound);
+
+    jwt.sign(payload, process.env.SECRET_WORD, (error, token) => {
+      if (error) throw error;
+      return res.status(200).json({
+        message: "User successfully logged in.",
+        token,
+        ...termsStatus,
+      });
+    });
+  } catch (error) {
+    return res.status(error.code || 500).json({ message: error.message });
+  }
+};
 
 const googleRegister = async (req, res) => {
     try {
@@ -110,58 +104,55 @@ const googleRegister = async (req, res) => {
 }
 
     const appleLogin = async (req, res) => {
-    try {
-        const { identityToken, fullName } = req.body;
+  try {
+    const { identityToken, fullName } = req.body;
+    if (!identityToken) return res.status(400).json({ message: "Missing identityToken." });
 
-        if (!identityToken) {
-        return res.status(400).json({ message: "Missing identityToken." });
-        }
+    const { payload } = await jwtVerify(identityToken, appleJwks, {
+      issuer: "https://appleid.apple.com",
+      audience: "com.adna88.CaCapp",
+    });
 
-        const { payload } = await jwtVerify(identityToken, appleJwks, {
-        issuer: "https://appleid.apple.com",
-        audience: "com.adna88.CaCapp",
-        });
+    const appleSub = payload.sub;
+    const email = payload.email;
 
-        const appleSub = payload.sub;
-        const email = payload.email;
+    if (!appleSub) return res.status(400).json({ message: "Invalid Apple token (missing sub)." });
 
-        if (!appleSub) {
-        return res.status(400).json({ message: "Invalid Apple token (missing sub)." });
-        }
+    let userFound = await User.findOne({ appleSub, isDeleted: false });
 
-        let userFound = await User.findOne({ appleSub, isDeleted: false });
-
-        if (!userFound && email) {
-        userFound = await User.findOne({ email, isDeleted: false });
-        if (userFound) {
-            userFound.appleSub = appleSub;
-            if (userFound.validatedMail !== true) userFound.validatedMail = true;
-            await userFound.save();
-        }
-        }
-
-        if (!userFound) {
-        const given_name = fullName?.givenName || "";
-        const family_name = fullName?.familyName || "";
-
-        return res.status(404).json({
-            message: "User not found.",
-            user: { email: email || "", given_name, family_name, appleSub },
-        });
-        }
-
-        const tokenPayload = {
-        user: { id: userFound._id, role: userFound.role },
-        };
-
-        jwt.sign(tokenPayload, process.env.SECRET_WORD, (error, token) => {
-        if (error) throw error;
-        return res.status(200).json({ message: "User successfully logged in.", token });
-        });
-    } catch (error) {
-        return res.status(401).json({ message: "Invalid Apple token." });
+    if (!userFound && email) {
+      userFound = await User.findOne({ email, isDeleted: false });
+      if (userFound) {
+        userFound.appleSub = appleSub;
+        if (userFound.validatedMail !== true) userFound.validatedMail = true;
+        await userFound.save();
+      }
     }
-    };
+
+    if (!userFound) {
+      const given_name = fullName?.givenName || "";
+      const family_name = fullName?.familyName || "";
+      return res.status(404).json({
+        message: "User not found.",
+        user: { email: email || "", given_name, family_name, appleSub },
+      });
+    }
+
+    const tokenPayload = { user: { id: userFound._id, role: userFound.role } };
+    const termsStatus = getTermsStatus(userFound);
+
+    jwt.sign(tokenPayload, process.env.SECRET_WORD, (error, token) => {
+      if (error) throw error;
+      return res.status(200).json({
+        message: "User successfully logged in.",
+        token,
+        ...termsStatus,
+      });
+    });
+  } catch (error) {
+    return res.status(401).json({ message: "Invalid Apple token." });
+  }
+};
 
     const appleRegister = async (req, res) => {
         try {
@@ -395,6 +386,33 @@ const verifyTransportFields = async(req,res) => {
         res.status(error.code || 500).json({ message: error.message })
     }
 }
+
+
+const acceptMyTerms = async (req, res) => {
+  try {
+    const userFound = await User.findById(req.userId);
+    if (!userFound) return res.status(404).json({ message: "User not found." });
+
+    userFound.consents = userFound.consents || {};
+    userFound.consents.terms = {
+      accepted: true,
+      acceptedAt: new Date(),
+      version: TERMS_VERSION,
+      source: req.body?.source || "modal",
+    };
+
+    await userFound.save();
+
+    return res.status(200).json({
+      message: "Terms accepted.",
+      mustAcceptTerms: false,
+      currentTermsVersion: TERMS_VERSION,
+      userTermsVersion: TERMS_VERSION,
+    });
+  } catch (error) {
+    return res.status(error.code || 500).json({ message: error.message });
+  }
+};
 
 const getImage = async(req,res) => {
     const { userId, imageType } = req.params;
@@ -649,6 +667,7 @@ module.exports = {
     updateFields,
     verifyTransportFields,
     updateReviews,
+    acceptMyTerms,
     getImage,
     addCancelled,
     updateExpoPushToken,
