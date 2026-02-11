@@ -219,52 +219,54 @@ const googleRegister = async (req, res) => {
 
 
     const deleteMyAccount = async (req, res) => {
-        try {
-            const user = await User.findById(req.userId);
-            if (!user) return res.status(404).json({ message: "User not found." });
-            if (user.isDeleted) return res.status(400).json({ message: "User already deleted." });
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ message: "User not found." });
+    if (user.isDeleted) return res.status(400).json({ message: "User already deleted." });
 
-            const rand = crypto.randomBytes(8).toString("hex");
-            const deletedEmail = `deleted+${user._id.toString()}+${rand}@callacar.invalid`;
+    const rand = crypto.randomBytes(8).toString("hex");
+    const deletedEmail = `deleted+${user._id.toString()}+${rand}@callacar.invalid`;
 
-            await User.updateOne(
-            { _id: req.userId },
-            {
-                $set: {
-                isDeleted: true,
-                email: deletedEmail,
-                validatedMail: false,
-                appleSub: null,
-                expoPushToken: null,
-                given_name: "Deleted",
-                family_name: "User",
-                infoCompletedFlag: false,
-                authorizedTransport: false,
-                verificationInfo: {
-                    verificationCode: null,
-                    expirationTime: null,
-                    attempts: 0,
-                    blockTime: null,
-                    isPermanentlyBlocked: false,
-                },
-                "transportInfo.stripeAccount.accountId": null,
-                "transportInfo.stripeAccount.validatedAccount": false,
-                },
-                $unset: {
-                "transportInfo.cargoAreaImg": "",
-                "transportInfo.generalImg": "",
-                "transportInfo.licenseFrontImg": "",
-                "transportInfo.licenseBackImg": "",
-                "transportInfo.profilePhotoImg": "",
-                "transportInfo.policeCheckPdf": "",
-                },
-            }
-            );
+    await User.updateOne(
+      { _id: req.userId },
+      {
+        $set: {
+          isDeleted: true,
+          email: deletedEmail,
+          validatedMail: false,
+          appleSub: null,
+          expoPushToken: null,
+          given_name: "Deleted",
+          family_name: "User",
+          infoCompletedFlag: false,
+          authorizedTransport: false,
+          verificationInfo: {
+            verificationCode: null,
+            expirationTime: null,
+            attempts: 0,
+            blockTime: null,
+            isPermanentlyBlocked: false,
+          },
+          "transportInfo.stripeAccount.accountId": null,
+          "transportInfo.stripeAccount.validatedAccount": false,
+        },
+        $unset: {
+          "transportInfo.cargoAreaImg": "",
+          "transportInfo.generalImg": "",
+          "transportInfo.licenseFrontImg": "",
+          "transportInfo.licenseBackImg": "",
+          "transportInfo.profilePhotoImg": "",
+          "transportInfo.policeCheckPdf": "",
+        },
+      }
+    );
 
-            return res.status(200).json({ message: "Account deleted." });
-        } catch (error) {
-            return res.status(error.code || 500).json({ message: error.message });
-        }
+    return res.status(200).json({ message: "Account deleted." });
+  } catch (error) {
+    const code = error?.code;
+    if (code === 11000) return res.status(409).json({ message: "Duplicate key." });
+    return res.status(500).json({ message: error?.message || "Server error." });
+  }
 };
 
 
