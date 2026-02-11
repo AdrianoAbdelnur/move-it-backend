@@ -218,72 +218,66 @@ const googleRegister = async (req, res) => {
 };
 
 
-    import crypto from "crypto";
-import User from "../models/User.js";
+    const deleteMyAccount = async (req, res) => {
+        try {
+            const userId = req.userId;
+            if (!userId) return res.status(401).json({ message: "Unauthorized." });
 
-export const deleteMyAccount = async (req, res) => {
-  try {
-    const userId = req.userId;
+            const deletedEmail = `deleted+${userId}@callacar.invalid`;
 
-    if (!userId) return res.status(401).json({ message: "Unauthorized." });
+            const updated = await User.findOneAndUpdate(
+            { _id: userId, isDeleted: { $ne: true } },
+            {
+                $set: {
+                isDeleted: true,
+                email: deletedEmail,
+                validatedMail: false,
+                given_name: "Deleted",
+                family_name: "User",
+                infoCompletedFlag: false,
+                authorizedTransport: false,
+                verificationInfo: {
+                    verificationCode: null,
+                    expirationTime: null,
+                    attempts: 0,
+                    blockTime: null,
+                    isPermanentlyBlocked: false,
+                },
+                "transportInfo.stripeAccount.validatedAccount": false,
+                },
+                $unset: {
+                appleSub: "",
+                expoPushToken: "",
+                "transportInfo.stripeAccount.accountId": "",
+                "transportInfo.cargoAreaImg": "",
+                "transportInfo.generalImg": "",
+                "transportInfo.licenseFrontImg": "",
+                "transportInfo.licenseBackImg": "",
+                "transportInfo.profilePhotoImg": "",
+                "transportInfo.policeCheckPdf": "",
+                },
+            },
+            { new: false }
+            );
 
-    const deletedEmail = `deleted+${userId}@callacar.invalid`;
+            if (!updated) {
+            const exists = await User.exists({ _id: userId });
+            if (!exists) return res.status(404).json({ message: "User not found." });
+            return res.status(400).json({ message: "User already deleted." });
+            }
 
-    const updated = await User.findOneAndUpdate(
-      { _id: userId, isDeleted: { $ne: true } },
-      {
-        $set: {
-          isDeleted: true,
-          email: deletedEmail,
-          validatedMail: false,
-          given_name: "Deleted",
-          family_name: "User",
-          infoCompletedFlag: false,
-          authorizedTransport: false,
-          verificationInfo: {
-            verificationCode: null,
-            expirationTime: null,
-            attempts: 0,
-            blockTime: null,
-            isPermanentlyBlocked: false,
-          },
-          "transportInfo.stripeAccount.validatedAccount": false,
-        },
-        $unset: {
-          appleSub: "",
-          expoPushToken: "",
-          "transportInfo.stripeAccount.accountId": "",
-          "transportInfo.cargoAreaImg": "",
-          "transportInfo.generalImg": "",
-          "transportInfo.licenseFrontImg": "",
-          "transportInfo.licenseBackImg": "",
-          "transportInfo.profilePhotoImg": "",
-          "transportInfo.policeCheckPdf": "",
-        },
-      },
-      { new: false }
-    );
-
-    if (!updated) {
-      const exists = await User.exists({ _id: userId });
-      if (!exists) return res.status(404).json({ message: "User not found." });
-      return res.status(400).json({ message: "User already deleted." });
-    }
-
-    return res.status(200).json({ message: "Account deleted." });
-  } catch (error) {
-    if (error?.code === 11000) {
-      return res.status(409).json({
-        message: "Duplicate key while deleting account.",
-        keyPattern: error?.keyPattern,
-        keyValue: error?.keyValue,
-      });
-    }
-
-    return res.status(500).json({ message: error?.message || "Server error." });
-  }
-};
-
+            return res.status(200).json({ message: "Account deleted." });
+        } catch (error) {
+            if (error?.code === 11000) {
+            return res.status(409).json({
+                message: "Duplicate key while deleting account.",
+                keyPattern: error?.keyPattern,
+                keyValue: error?.keyValue,
+            });
+            }
+            return res.status(500).json({ message: error?.message || "Server error." });
+        }
+        };
 
 
 
