@@ -218,24 +218,24 @@ const googleRegister = async (req, res) => {
 };
 
 
-    const deleteMyAccount = async (req, res) => {
+    import crypto from "crypto";
+import User from "../models/User.js";
+
+export const deleteMyAccount = async (req, res) => {
   try {
-    const user = await User.findById(req.userId);
-    if (!user) return res.status(404).json({ message: "User not found." });
-    if (user.isDeleted) return res.status(400).json({ message: "User already deleted." });
+    const userId = req.userId;
 
-    const rand = crypto.randomBytes(8).toString("hex");
-    const deletedEmail = `deleted+${user._id.toString()}+${rand}@callacar.invalid`;
+    if (!userId) return res.status(401).json({ message: "Unauthorized." });
 
-    await User.updateOne(
-      { _id: req.userId },
+    const deletedEmail = `deleted+${userId}@callacar.invalid`;
+
+    const updated = await User.findOneAndUpdate(
+      { _id: userId, isDeleted: { $ne: true } },
       {
         $set: {
           isDeleted: true,
           email: deletedEmail,
           validatedMail: false,
-          appleSub: null,
-          expoPushToken: null,
           given_name: "Deleted",
           family_name: "User",
           infoCompletedFlag: false,
@@ -247,10 +247,12 @@ const googleRegister = async (req, res) => {
             blockTime: null,
             isPermanentlyBlocked: false,
           },
-          "transportInfo.stripeAccount.accountId": null,
           "transportInfo.stripeAccount.validatedAccount": false,
         },
         $unset: {
+          appleSub: "",
+          expoPushToken: "",
+          "transportInfo.stripeAccount.accountId": "",
           "transportInfo.cargoAreaImg": "",
           "transportInfo.generalImg": "",
           "transportInfo.licenseFrontImg": "",
@@ -258,16 +260,30 @@ const googleRegister = async (req, res) => {
           "transportInfo.profilePhotoImg": "",
           "transportInfo.policeCheckPdf": "",
         },
-      }
+      },
+      { new: false }
     );
+
+    if (!updated) {
+      const exists = await User.exists({ _id: userId });
+      if (!exists) return res.status(404).json({ message: "User not found." });
+      return res.status(400).json({ message: "User already deleted." });
+    }
 
     return res.status(200).json({ message: "Account deleted." });
   } catch (error) {
-    const code = error?.code;
-    if (code === 11000) return res.status(409).json({ message: "Duplicate key." });
+    if (error?.code === 11000) {
+      return res.status(409).json({
+        message: "Duplicate key while deleting account.",
+        keyPattern: error?.keyPattern,
+        keyValue: error?.keyValue,
+      });
+    }
+
     return res.status(500).json({ message: error?.message || "Server error." });
   }
 };
+
 
 
 
