@@ -6,11 +6,32 @@ require('dotenv').config();
 const crypto = require('crypto');
 const { getTermsStatus, TERMS_VERSION } = require("../helpers/terms");
 
-const { createRemoteJWKSet, jwtVerify } = require('jose');
-const { URL } = require('url');
+const { URL } = require("url");
 
-const appleJwks = createRemoteJWKSet(new URL('https://appleid.apple.com/auth/keys'));
+let josePromise = null;
+let appleJwks = null;
 
+function getJose() {
+  if (!josePromise) josePromise = import("jose");
+  return josePromise;
+}
+
+async function getAppleJwks() {
+  if (appleJwks) return appleJwks;
+  const { createRemoteJWKSet } = await getJose();
+  appleJwks = createRemoteJWKSet(new URL("https://appleid.apple.com/auth/keys"));
+  return appleJwks;
+}
+
+async function verifyAppleIdentityToken(identityToken) {
+  const { jwtVerify } = await getJose();
+  const jwks = await getAppleJwks();
+  const { payload } = await jwtVerify(identityToken, jwks, {
+    issuer: "https://appleid.apple.com",
+    audience: "com.adna88.CaCapp",
+  });
+  return payload;
+}
 const registerUser = async (req, res) => {
     try {
         const verificationCode = crypto.randomBytes(6).toString('hex').slice(0, 6).toUpperCase();
@@ -108,10 +129,7 @@ const googleRegister = async (req, res) => {
     const { identityToken, fullName } = req.body;
     if (!identityToken) return res.status(400).json({ message: "Missing identityToken." });
 
-    const { payload } = await jwtVerify(identityToken, appleJwks, {
-      issuer: "https://appleid.apple.com",
-      audience: "com.adna88.CaCapp",
-    });
+    const payload = await verifyAppleIdentityToken(identityToken);
 
     const appleSub = payload.sub;
     const email = payload.email;
@@ -161,10 +179,7 @@ const googleRegister = async (req, res) => {
             if (!identityToken) return res.status(400).json({ message: "Missing identityToken." });
             if (!role) return res.status(400).json({ message: "Missing role." });
 
-            const { payload } = await jwtVerify(identityToken, appleJwks, {
-            issuer: "https://appleid.apple.com",
-            audience: "com.adna88.CaCapp",
-            });
+           const payload = await verifyAppleIdentityToken(identityToken);
 
             const appleSub = payload.sub;
             const email = payload.email;
