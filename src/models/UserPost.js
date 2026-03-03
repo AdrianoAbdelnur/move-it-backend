@@ -109,7 +109,7 @@ const UserPostSchema = new Schema({
     },
     createAt: {
         type: Date,
-        default: Date.now(),
+        default: Date.now,
     },
     chatMessages: [
         {
@@ -122,7 +122,7 @@ const UserPostSchema = new Schema({
             },
             date: {
                 type:Date, 
-                default: Date.now()
+                default: Date.now,
             },
         }
     ],

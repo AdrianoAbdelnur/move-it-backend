@@ -6,10 +6,14 @@ require("dotenv").config();
 const cors = require("cors");
 const { setupSocket } = require("./src/socketIo");
 
-
 const allowedOrigins = [
-  "http://localhost:5173",           
-  "https://tupagina.com",            
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "https://callacar.onrender.com",
+  "https://tupagina.com",
+  ...(process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(",").map((origin) => origin.trim())
+    : []),
 ];
 
 app.use(express.json({ extended: true, limit: "50mb" }));
