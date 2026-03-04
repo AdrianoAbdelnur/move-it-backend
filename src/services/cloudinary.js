@@ -31,6 +31,30 @@ const buildPostPublicId = (userId) => {
   return `${safeUserId}_${Date.now()}_${nonce}`;
 };
 
+const buildDescriptivePublicId = (prefix) => {
+  const nonce = crypto.randomBytes(4).toString("hex");
+  return `${prefix}__${Date.now()}_${nonce}`;
+};
+
+const buildPublicIdByFileKind = (fileKind, userId) => {
+  const map = {
+    transport_profile_photo: "profile",
+    transport_license_front: "license_front",
+    transport_license_back: "license_back",
+    transport_police_check_pdf: "police_check",
+    transport_vehicle_general: "vehicle_general",
+    transport_vehicle_cargo: "vehicle_cargo",
+  };
+
+  if (fileKind === "post_item_photo") {
+    return buildPostPublicId(userId);
+  }
+
+  const prefix = map[fileKind];
+  if (!prefix) return null;
+  return buildDescriptivePublicId(prefix);
+};
+
 const signParams = (params, apiSecret) => {
   const sortedKeys = Object.keys(params).sort();
   const toSign = sortedKeys.map((key) => `${key}=${params[key]}`).join("&");
@@ -53,7 +77,7 @@ const buildUploadSignature = ({ fileKind, resourceType = "auto", userId }) => {
   const folder = resolveFolderByFileKind(fileKind, userId);
   if (!folder) throw new Error("Invalid file kind.");
   const assetFolder = folder;
-  const publicId = fileKind === "post_item_photo" ? buildPostPublicId(userId) : null;
+  const publicId = buildPublicIdByFileKind(fileKind, userId);
 
   const timestamp = Math.floor(Date.now() / 1000);
   const paramsToSign = {
