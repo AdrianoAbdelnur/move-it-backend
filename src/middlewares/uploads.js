@@ -10,7 +10,7 @@ const FILE_KINDS = [
   "post_item_photo",
 ];
 
-const RESOURCE_TYPES = ["image", "raw", "auto"];
+const RESOURCE_TYPES = ["image", "raw", "auto", "video"];
 
 const verifyUploadSignFields = () => {
   return [
@@ -27,7 +27,36 @@ const verifyUploadSignFields = () => {
   ];
 };
 
+const verifyUploadDeleteFields = () => {
+  return [
+    body("publicId")
+      .optional()
+      .isString()
+      .trim()
+      .notEmpty()
+      .withMessage("Invalid publicId."),
+    body("secureUrl")
+      .optional()
+      .isString()
+      .trim()
+      .isURL({ require_protocol: true })
+      .withMessage("Invalid secureUrl."),
+    body("resourceType")
+      .optional()
+      .isString()
+      .isIn(RESOURCE_TYPES)
+      .withMessage("Invalid resource type."),
+    body().custom((value, { req }) => {
+      if (!req.body?.publicId && !req.body?.secureUrl) {
+        throw new Error("publicId or secureUrl is required.");
+      }
+      return true;
+    }),
+  ];
+};
+
 module.exports = {
   verifyUploadSignFields,
+  verifyUploadDeleteFields,
   FILE_KINDS,
 };
