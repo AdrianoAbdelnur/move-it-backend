@@ -46,9 +46,11 @@ const buildUploadSignature = ({ fileKind, resourceType = "auto", userId }) => {
 
   const folder = resolveFolderByFileKind(fileKind, userId);
   if (!folder) throw new Error("Invalid file kind.");
+  const assetFolder = folder;
 
   const timestamp = Math.floor(Date.now() / 1000);
   const paramsToSign = {
+    asset_folder: assetFolder,
     folder,
     timestamp,
   };
@@ -64,6 +66,7 @@ const buildUploadSignature = ({ fileKind, resourceType = "auto", userId }) => {
     timestamp,
     signature,
     folder,
+    assetFolder,
     resourceType,
     uploadPreset,
   };
