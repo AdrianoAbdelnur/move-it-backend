@@ -10,7 +10,7 @@ const getCurrentYearMonth = () => {
 
 const resolveFolderByFileKind = (fileKind, userId) => {
   const transportUserBase = `cac/profile/${userId}`;
-  const postOwnerBase = `cac/posts/${getCurrentYearMonth()}/${userId}`;
+  const postOwnerBase = `cac/posts/${getCurrentYearMonth()}`;
 
   const map = {
     transport_profile_photo: `${transportUserBase}/profile`,
@@ -23,6 +23,12 @@ const resolveFolderByFileKind = (fileKind, userId) => {
   };
 
   return map[fileKind];
+};
+
+const buildPostPublicId = (userId) => {
+  const safeUserId = String(userId || "").trim();
+  const nonce = crypto.randomBytes(4).toString("hex");
+  return `${safeUserId}_${Date.now()}_${nonce}`;
 };
 
 const signParams = (params, apiSecret) => {
@@ -47,6 +53,7 @@ const buildUploadSignature = ({ fileKind, resourceType = "auto", userId }) => {
   const folder = resolveFolderByFileKind(fileKind, userId);
   if (!folder) throw new Error("Invalid file kind.");
   const assetFolder = folder;
+  const publicId = fileKind === "post_item_photo" ? buildPostPublicId(userId) : null;
 
   const timestamp = Math.floor(Date.now() / 1000);
   const paramsToSign = {
@@ -54,6 +61,9 @@ const buildUploadSignature = ({ fileKind, resourceType = "auto", userId }) => {
     folder,
     timestamp,
   };
+  if (publicId) {
+    paramsToSign.public_id = publicId;
+  }
   if (uploadPreset) {
     paramsToSign.upload_preset = uploadPreset;
   }
@@ -67,6 +77,7 @@ const buildUploadSignature = ({ fileKind, resourceType = "auto", userId }) => {
     signature,
     folder,
     assetFolder,
+    publicId,
     resourceType,
     uploadPreset,
   };
@@ -116,12 +127,14 @@ const assertUserOwnsPublicId = (publicId, userId) => {
   const legacyPrefix = `cac/${userId}/`;
   const transportUserPrefix = `cac/profile/${userId}/`;
   const escapedUserId = escapeRegExp(String(userId));
-  const postsPattern = new RegExp(`^cac/posts/\\d{6}/${escapedUserId}(/|$)`);
+  const postsLegacyPattern = new RegExp(`^cac/posts/\\d{6}/${escapedUserId}(/|$)`);
+  const postsFlatPattern = new RegExp(`^cac/posts/\\d{6}/${escapedUserId}_`);
 
   const matchesOwnerFolder =
     publicId.startsWith(legacyPrefix) ||
     publicId.startsWith(transportUserPrefix) ||
-    postsPattern.test(publicId);
+    postsLegacyPattern.test(publicId) ||
+    postsFlatPattern.test(publicId);
 
   if (!matchesOwnerFolder) {
     const error = new Error("Asset does not belong to current user.");
