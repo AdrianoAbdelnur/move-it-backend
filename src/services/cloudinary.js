@@ -1,16 +1,25 @@
 const crypto = require("crypto");
 const https = require("https");
 
+const getCurrentYearMonth = () => {
+  const now = new Date();
+  const year = now.getUTCFullYear();
+  const month = String(now.getUTCMonth() + 1).padStart(2, "0");
+  return `${year}${month}`;
+};
+
 const resolveFolderByFileKind = (fileKind, userId) => {
-  const base = `cac/${userId}`;
+  const transportUserBase = `cac/profile/${userId}`;
+  const postOwnerBase = `cac/posts/${getCurrentYearMonth()}/${userId}`;
+
   const map = {
-    transport_profile_photo: `${base}/transport/profile`,
-    transport_license_front: `${base}/transport/license`,
-    transport_license_back: `${base}/transport/license`,
-    transport_police_check_pdf: `${base}/transport/police-check`,
-    transport_vehicle_general: `${base}/transport/vehicle`,
-    transport_vehicle_cargo: `${base}/transport/vehicle`,
-    post_item_photo: `${base}/posts`,
+    transport_profile_photo: `${transportUserBase}/profile`,
+    transport_license_front: `${transportUserBase}/license`,
+    transport_license_back: `${transportUserBase}/license`,
+    transport_police_check_pdf: `${transportUserBase}/police-check`,
+    transport_vehicle_general: `${transportUserBase}/vehicle`,
+    transport_vehicle_cargo: `${transportUserBase}/vehicle`,
+    post_item_photo: `${postOwnerBase}`,
   };
 
   return map[fileKind];
@@ -98,9 +107,20 @@ const parseCloudinaryUrl = (secureUrl, expectedCloudName) => {
   };
 };
 
+const escapeRegExp = (value = "") => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 const assertUserOwnsPublicId = (publicId, userId) => {
-  const expectedPrefix = `cac/${userId}/`;
-  if (!publicId.startsWith(expectedPrefix)) {
+  const legacyPrefix = `cac/${userId}/`;
+  const transportUserPrefix = `cac/profile/${userId}/`;
+  const escapedUserId = escapeRegExp(String(userId));
+  const postsPattern = new RegExp(`^cac/posts/\\d{6}/${escapedUserId}(/|$)`);
+
+  const matchesOwnerFolder =
+    publicId.startsWith(legacyPrefix) ||
+    publicId.startsWith(transportUserPrefix) ||
+    postsPattern.test(publicId);
+
+  if (!matchesOwnerFolder) {
     const error = new Error("Asset does not belong to current user.");
     error.code = 403;
     throw error;
@@ -201,3 +221,4 @@ module.exports = {
   buildUploadSignature,
   deleteCloudinaryAsset,
 };
+
