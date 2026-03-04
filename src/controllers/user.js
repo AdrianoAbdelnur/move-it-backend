@@ -16,12 +16,11 @@ function getJose() {
   return josePromise;
 }
 
-async function getAppleJwks() {
-  if (appleJwks) return appleJwks;
-  const { createRemoteJWKSet } = await getJose();
-  appleJwks = createRemoteJWKSet(new URL("https://appleid.apple.com/auth/keys"));
-  return appleJwks;
-}
+
+const generateNumericVerificationCode = (length = 6) => {
+  const max = 10 ** length;
+  return String(crypto.randomInt(0, max)).padStart(length, "0");
+};
 
 async function verifyAppleIdentityToken(identityToken) {
   const { jwtVerify } = await getJose();
@@ -34,7 +33,7 @@ async function verifyAppleIdentityToken(identityToken) {
 }
 const registerUser = async (req, res) => {
     try {
-        const verificationCode = crypto.randomBytes(6).toString('hex').slice(0, 6).toUpperCase();
+        const verificationCode = generateNumericVerificationCode(6);
         const currentTime = new Date();
         const expirationTime = new Date(currentTime.getTime() + 15 * 60 * 1000);
         const salt = await bcryptjs.genSalt(10);
@@ -536,7 +535,7 @@ const generateNewValidationCode = async(req, res) => {
         const {userId} = req.params
         const { email } = req.body;
         
-        const verificationCode = crypto.randomBytes(6).toString('hex').slice(0, 6).toUpperCase();
+        const verificationCode = generateNumericVerificationCode(6);
         const currentTime = new Date();
         const expirationTime = new Date(currentTime.getTime() + 15 * 60 * 1000);
         
