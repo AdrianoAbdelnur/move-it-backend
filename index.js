@@ -34,7 +34,7 @@ app.use("/api", require("./src/routes"));
 
 const server = http.createServer(app);
 
-setupSocket(server);
+setupSocket(server, allowedOrigins);
 
 mongoose.connect(process.env.DB_URL).then(() => {
   console.log("Connected to MongoDB");
