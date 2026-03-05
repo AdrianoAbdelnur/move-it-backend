@@ -22,17 +22,6 @@ const getHandshakeToken = (socket) => {
   return normalizeToken(headerToken);
 };
 
-const isAllowedOrigin = (origin, allowedOrigins) => {
-  if (!origin) return true;
-  const normalizedOrigin = String(origin).trim().toLowerCase();
-  if (allowedOrigins.includes(origin)) return true;
-  if (normalizedOrigin.startsWith("exp://")) return true;
-  if (normalizedOrigin.startsWith("http://localhost")) return true;
-  if (normalizedOrigin.startsWith("http://127.0.0.1")) return true;
-  if (normalizedOrigin.startsWith("http://192.168.")) return true;
-  return false;
-};
-
 const getRecipientSockets = (recipient) => users[String(recipient)] || [];
 
 const normalizeId = (value) => {
@@ -81,10 +70,8 @@ const canUsersExchangeMessage = async ({ postId, senderId, recipientId }) => {
 const setupSocket = (server, allowedOrigins = []) => {
   io = socketIo(server, {
     cors: {
-      origin: (origin, callback) => {
-        if (isAllowedOrigin(origin, allowedOrigins)) return callback(null, true);
-        return callback(new Error("Not allowed by CORS"));
-      },
+      // Keep browser compatibility broad; security is enforced with JWT in handshake + event authorization.
+      origin: true,
       methods: ["GET", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"],
       credentials: true,
     },
@@ -93,13 +80,20 @@ const setupSocket = (server, allowedOrigins = []) => {
   io.use((socket, next) => {
     try {
       const token = getHandshakeToken(socket);
-      if (!token) return next(new Error("Unauthorized"));
+      if (!token) {
+        console.warn("Socket rejected: missing token");
+        return next(new Error("Unauthorized"));
+      }
       const { user } = jwt.verify(token, process.env.SECRET_WORD);
-      if (!user?.id) return next(new Error("Unauthorized"));
+      if (!user?.id) {
+        console.warn("Socket rejected: token without user id");
+        return next(new Error("Unauthorized"));
+      }
       socket.userId = String(user.id);
       socket.userRole = user.role;
       return next();
     } catch (error) {
+      console.warn("Socket rejected: invalid token", error?.message);
       return next(new Error("Unauthorized"));
     }
   });
