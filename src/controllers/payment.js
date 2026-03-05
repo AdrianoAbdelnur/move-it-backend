@@ -79,8 +79,7 @@ const createStripeAccount = async (req, res) => {
 
       res.json({ message: "Account created and linked successfully.", stripeAccountId: account.id });
   } catch (error) {
-    console.log(error)
-    console.log(error)
+    console.log("[payment] createStripeAccount failed.");
       res.status(500).json({ message: error.message });
   }
 };
@@ -100,7 +99,7 @@ const createStripeAccountLink = async (req, res) => {
     res.json({ message: "url.", accountLink });
     
   } catch (error) {
-    console.log(error)
+    console.log("[payment] createStripeAccountLink failed.");
     res.status(500).json({ message: error.message });
   }
 };
@@ -134,7 +133,7 @@ const deleteStripeUser = async (req, res) => {
             await stripe.accounts.del(account.id);
             deletedCount++;
           } catch (err) {
-            console.log(`❌ Error al eliminar ${account.id}:`, err.message);
+            console.log("[payment] deleteStripeUser item delete failed.");
           }
         }
       }
@@ -249,3 +248,4 @@ module.exports = {
   checkStripeAccountStatus,
   release
 }
+
