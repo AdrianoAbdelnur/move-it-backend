@@ -68,7 +68,8 @@ const buildUploadSignature = ({ fileKind, resourceType = "auto", userId }) => {
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
   const apiKey = process.env.CLOUDINARY_API_KEY;
   const apiSecret = process.env.CLOUDINARY_API_SECRET;
-  const uploadPreset = process.env.CLOUDINARY_UPLOAD_PRESET || null;
+  const useSignedUploadPreset = process.env.CLOUDINARY_USE_SIGNED_PRESET === "true";
+  const uploadPreset = useSignedUploadPreset ? process.env.CLOUDINARY_UPLOAD_PRESET || null : null;
 
   if (!cloudName || !apiKey || !apiSecret) {
     throw new Error("Cloudinary credentials are missing in environment.");
