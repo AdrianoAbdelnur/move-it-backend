@@ -2,6 +2,21 @@ const { default: mongoose } = require("mongoose");
 const UserPost = require("../models/UserPost");
 const {shareNewPost, OfferSelected, notifyNewStatus} = require("./../socketIo")
 
+const expirePendingPosts = async () => {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    await UserPost.updateMany(
+        {
+            "status.mainStatus": "pending",
+            "date.date": { $lt: startOfToday },
+        },
+        {
+            $set: { "status.mainStatus": "expired" },
+        }
+    );
+};
+
 const addPost = async(req, res) => {
     try {
         const post = req.body
@@ -45,6 +60,7 @@ const addPost = async(req, res) => {
 
 const getAllPosts =  async (req, res) => {
     try {
+        await expirePendingPosts();
         const postsList = await UserPost.find({isDelete: false}).populate("owner");
         res.status(200).json({message: 'Posts obtained correctly', postsList})
     } catch (error) {
@@ -54,6 +70,7 @@ const getAllPosts =  async (req, res) => {
 
 const getMyPosts =  async (req, res) => {
     try {
+        await expirePendingPosts();
         const {id} = req.params
         const myPost = await UserPost.find({owner: id}).populate({
             path: 'offers',
@@ -80,6 +97,7 @@ const getMyPosts =  async (req, res) => {
 
 const getPendingPosts =  async (req, res) => {
     try {
+        await expirePendingPosts();
         const pendingPost = await UserPost.find({"status.mainStatus": "pending" }).populate({path: "owner", select: "-password"}).populate({
             path: "offers",
             select: "_id price post expiredTime offerDetails status",
@@ -101,6 +119,7 @@ const getPendingPosts =  async (req, res) => {
 const getMySelectedPosts =  async (req, res) => {
     const { ownerId } = req.params
     try {
+        await expirePendingPosts();
         const postsSelectedOffers = await UserPost.find({ offerSelected: { $ne: null } }).populate("offerSelected").populate({
             path: 'owner',
             model: 'User',
