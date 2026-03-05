@@ -354,20 +354,10 @@ const updateFields = async (req, res) => {
             updatedUser.infoCompletedFlag = true;
             await updatedUser.save();
         }
-        let transportInfoStatus = {};
-        for (const [key, value] of Object.entries(updatedUser.transportInfo)) {
-            transportInfoStatus[key] = value? true : false;
-        }
-        transportInfoStatus={
+        const transportInfoStatus = {
             infoCompletedFlag: updatedUser.infoCompletedFlag,
-            transportInfo:{
-                ...transportInfoStatus, 
-                vehicle: updatedUser.transportInfo.vehicle, 
-                registrationPlate:updatedUser.transportInfo.registrationPlate, 
-                stripeAccount: updatedUser.transportInfo.stripeAccount,
-                ABN: updatedUser.transportInfo.ABN
-            }
-        }
+            transportInfo: updatedUser.transportInfo,
+        };
         res.status(200).json({ message: "User's data uploaded successfully.", transportInfoStatus });
     } catch (error) {
         res.status(error.code || 500).json({ message: error.message });
@@ -396,17 +386,7 @@ const verifyTransportFields = async(req,res) => {
     try {
         const userFound = await User.findById(req.userId).select('-password');
         if (!userFound) return res.status(400).json({ message: 'User Not Found' });
-        let transportInfoStatus = {};
-        for (const [key, value] of Object.entries(userFound.transportInfo)) {
-            transportInfoStatus[key] = value? true : false;
-        }
-        transportInfoStatus= {
-            ...transportInfoStatus, 
-            vehicle: userFound.transportInfo.vehicle, 
-            registrationPlate: userFound.transportInfo.registrationPlate ,
-            ABN: userFound.transportInfo.ABN,
-            stripeAccount: userFound.transportInfo.stripeAccount,
-        }
+        const transportInfoStatus = userFound.transportInfo;
         res.status(200).json({ message: 'Data successfully obtained', transportInfoStatus });
     } catch (error) {
         res.status(error.code || 500).json({ message: error.message })
@@ -458,12 +438,22 @@ const getImage = async(req,res) => {
             case 'profilePhotoImg':
                 imageData = user.transportInfo.profilePhotoImg;
                 break;
+            case 'licenseFrontImg':
+                imageData = user.transportInfo.licenseFrontImg;
+                break;
+            case 'licenseBackImg':
+                imageData = user.transportInfo.licenseBackImg;
+                break;
+            case 'policeCheckPdf':
+                imageData = user.transportInfo.policeCheckPdf;
+                break;
             default:
                 return res.status(400).json({ message: 'Invalid image type' });
         }
         if(imageData) {
-            res.status(200).json({ message: 'Image obtained', imageData });
+            return res.status(200).json({ message: 'Image obtained', imageData });
         }
+        return res.status(404).json({ message: 'Image not found' });
 
     } catch (error) {
         res.status(error.code || 500).json({ message: error.message })
