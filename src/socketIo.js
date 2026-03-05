@@ -103,7 +103,6 @@ const setupSocket = (server, allowedOrigins = []) => {
     if (!users[userId]) users[userId] = [];
     users[userId].push(socket.id);
     lastPong[socket.id] = Date.now();
-    console.log(`Authenticated socket connected: ${socket.id} as ${userId}`);
 
     socket.on("newUser", (claimedUserId) => {
       if (claimedUserId && String(claimedUserId) !== userId) {
@@ -164,7 +163,6 @@ const setupSocket = (server, allowedOrigins = []) => {
     });
 
     socket.on("disconnect", () => {
-      console.log("Socket disconnected:", socket.id);
       if (users[userId]) {
         users[userId] = users[userId].filter((id) => id !== socket.id);
         if (users[userId].length === 0) delete users[userId];
@@ -180,7 +178,6 @@ const setupSocket = (server, allowedOrigins = []) => {
       if (now - lastTime > timeout) {
         const socket = io.sockets.sockets.get(socketId);
         if (socket) {
-          console.log("Disconnecting inactive socket:", socketId);
           socket.disconnect(true);
         }
       } else {
