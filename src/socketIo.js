@@ -22,8 +22,16 @@ const getHandshakeToken = (socket) => {
   return normalizeToken(headerToken);
 };
 
-const isAllowedOrigin = (origin, allowedOrigins) =>
-  !origin || allowedOrigins.includes(origin);
+const isAllowedOrigin = (origin, allowedOrigins) => {
+  if (!origin) return true;
+  const normalizedOrigin = String(origin).trim().toLowerCase();
+  if (allowedOrigins.includes(origin)) return true;
+  if (normalizedOrigin.startsWith("exp://")) return true;
+  if (normalizedOrigin.startsWith("http://localhost")) return true;
+  if (normalizedOrigin.startsWith("http://127.0.0.1")) return true;
+  if (normalizedOrigin.startsWith("http://192.168.")) return true;
+  return false;
+};
 
 const getRecipientSockets = (recipient) => users[String(recipient)] || [];
 
