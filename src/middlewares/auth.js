@@ -2,6 +2,18 @@ const jwt = require("jsonwebtoken");
 require('dotenv').config();
 const { OAuth2Client } = require('google-auth-library');
 
+const getGoogleAudiences = () => {
+    const rawList = String(process.env.GOOGLE_CLIENT_IDS || '')
+        .split(',')
+        .map((v) => v.trim())
+        .filter(Boolean);
+
+    if (rawList.length > 0) return rawList;
+
+    const legacy = String(process.env.CLIENT_ID || '').trim();
+    return legacy ? [legacy] : [];
+};
+
 
 const decodeToken = async (req, res, next) => {
     try {
@@ -23,22 +35,26 @@ const adminRequiredValidation = (req, res, next) => {
 };
 
 const decodeFirebaseToken = async (req, res, next) => {
-    const client = new OAuth2Client(process.env.CLIENT_ID);
+    const audiences = getGoogleAudiences();
+    if (!audiences.length) {
+        return res.status(500).json({ error: 'Google client IDs are not configured on server' });
+    }
+
+    const client = new OAuth2Client(audiences[0]);
     try {
         const token = req.headers['googleauth'];
         if (!token) {
             return res.status(401).json({ error: 'Token missing in Authorization header' });
         }
 
-        
         const ticket = await client.verifyIdToken({
             idToken: token,
-            audience: process.env.CLIENT_ID,
+            audience: audiences,
         });
         const payload = ticket.getPayload();
-    
+
         req.user = payload;
-        req.idToken= token
+        req.idToken = token;
 
         next();
 
@@ -53,3 +69,4 @@ module.exports = {
     decodeFirebaseToken,
     adminRequiredValidation,
 };
+
