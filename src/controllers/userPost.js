@@ -25,13 +25,13 @@ const addPost = async(req, res) => {
             path: 'offers',
             populate: {
               path: 'owner',
-              select: 'given_name review expoPushToken'
+              select: 'given_name family_name review expoPushToken transportInfo.vehicle transportInfo.stripeAccount'
             }
           }).populate({
             path: 'offerSelected',
             populate: {
               path: 'owner',
-              select: 'given_name review expoPushToken'
+              select: 'given_name family_name review expoPushToken transportInfo.vehicle transportInfo.stripeAccount'
             }
           }).populate({
             path: 'transportCancel',    
@@ -83,7 +83,7 @@ const getMyPosts =  async (req, res) => {
             path: 'offerSelected',
             populate: {
               path: 'owner',
-              select: 'given_name review expoPushToken'
+              select: 'given_name family_name review expoPushToken transportInfo.vehicle transportInfo.stripeAccount'
             }
           }).populate({
             path: 'transportCancel',    
@@ -156,13 +156,13 @@ const modifyStatus =  async (req, res) => {
             path: 'offers',
             populate: {
               path: 'owner',
-              select: 'given_name review expoPushToken'
+              select: 'given_name family_name review expoPushToken transportInfo.vehicle transportInfo.stripeAccount'
             }
           }).populate({
             path: 'offerSelected',
             populate: {
               path: 'owner',
-              select: 'given_name review expoPushToken'
+              select: 'given_name family_name review expoPushToken transportInfo.vehicle transportInfo.stripeAccount'
             }
           });
           if (newPost.status.mainStatus === "inProgress" || newPost.status.mainStatus === "transportDone") {
@@ -240,13 +240,13 @@ const addComplaint = async(req, res) => {
             path: 'offers',
             populate: {
               path: 'owner',
-              select: 'given_name review expoPushToken'
+              select: 'given_name family_name review expoPushToken transportInfo.vehicle transportInfo.stripeAccount'
             }
           }).populate({
             path: 'offerSelected',
             populate: {
               path: 'owner',
-              select: 'given_name review expoPushToken'
+              select: 'given_name family_name review expoPushToken transportInfo.vehicle transportInfo.stripeAccount'
             }
           });
         if (!newPost) {
