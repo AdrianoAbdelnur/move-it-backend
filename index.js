@@ -11,6 +11,7 @@ const allowedOrigins = [
   "http://localhost:5174",
   "https://callacar.onrender.com",
   "https://tupagina.com",
+  "https://cac-web-puce.vercel.app",
   ...(process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(",").map((origin) => origin.trim())
     : []),
