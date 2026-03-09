@@ -4,6 +4,7 @@ const http = require('http');
 const app = express();
 require("dotenv").config();
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const { setupSocket } = require("./src/socketIo");
@@ -76,6 +77,7 @@ app.use(
 );
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
+app.use(cookieParser());
 
 app.use(cors({
   origin: function (origin, callback) {

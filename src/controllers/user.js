@@ -22,6 +22,40 @@ const isSelfOrAdmin = (req, targetUserId) => {
   return String(req.userId) === String(targetUserId);
 };
 
+const AUTH_COOKIE_NAME = process.env.AUTH_COOKIE_NAME || "access_token";
+const AUTH_COOKIE_MAX_AGE_MS = Number(process.env.AUTH_COOKIE_MAX_AGE_MS || 7 * 24 * 60 * 60 * 1000);
+const AUTH_COOKIE_SECURE =
+  String(process.env.AUTH_COOKIE_SECURE || (process.env.NODE_ENV === "production" ? "true" : "false")).toLowerCase() ===
+  "true";
+const AUTH_COOKIE_SAME_SITE = process.env.AUTH_COOKIE_SAMESITE || (AUTH_COOKIE_SECURE ? "none" : "lax");
+const AUTH_COOKIE_DOMAIN = process.env.AUTH_COOKIE_DOMAIN;
+
+const getAuthCookieOptions = () => {
+  const options = {
+    httpOnly: true,
+    secure: AUTH_COOKIE_SECURE,
+    sameSite: AUTH_COOKIE_SAME_SITE,
+    maxAge: AUTH_COOKIE_MAX_AGE_MS,
+    path: "/",
+  };
+
+  if (AUTH_COOKIE_DOMAIN) {
+    options.domain = AUTH_COOKIE_DOMAIN;
+  }
+
+  return options;
+};
+
+const setAuthCookie = (res, token) => {
+  res.cookie(AUTH_COOKIE_NAME, token, getAuthCookieOptions());
+};
+
+const clearAuthCookie = (res) => {
+  const options = getAuthCookieOptions();
+  delete options.maxAge;
+  res.clearCookie(AUTH_COOKIE_NAME, options);
+};
+
 
 const generateNumericVerificationCode = (length = 6) => {
   const max = 10 ** length;
@@ -76,6 +110,7 @@ const loginUser = async (req, res) => {
 
     jwt.sign(payload, process.env.SECRET_WORD, (error, token) => {
       if (error) throw error;
+      setAuthCookie(res, token);
       return res.status(200).json({
         message: "User successfully logged in.",
         token,
@@ -100,6 +135,7 @@ const googleLogin = async (req, res) => {
 
     jwt.sign(payload, process.env.SECRET_WORD, (error, token) => {
       if (error) throw error;
+      setAuthCookie(res, token);
       return res.status(200).json({
         message: "User successfully logged in.",
         token,
@@ -166,6 +202,7 @@ const googleRegister = async (req, res) => {
 
     jwt.sign(tokenPayload, process.env.SECRET_WORD, (error, token) => {
       if (error) throw error;
+      setAuthCookie(res, token);
       return res.status(200).json({
         message: "User successfully logged in.",
         token,
@@ -271,6 +308,7 @@ const googleRegister = async (req, res) => {
             return res.status(400).json({ message: "User already deleted." });
             }
 
+            clearAuthCookie(res);
             return res.status(200).json({ message: "Account deleted." });
         } catch (error) {
             if (error?.code === 11000) {
@@ -387,6 +425,11 @@ const loginStatus = (req, res) => {
         return res.status(error.code || 500).json({ message: error.message });
     }
 }
+
+const logoutUser = (req, res) => {
+    clearAuthCookie(res);
+    return res.status(200).json({ message: "Logout success" });
+};
 
 const verifyTransportFields = async(req,res) => {
     try {
@@ -755,6 +798,7 @@ module.exports = {
     deleteUser,
     updateUser,
     loginStatus,
+    logoutUser,
     updateFields,
     verifyTransportFields,
     updateReviews,
