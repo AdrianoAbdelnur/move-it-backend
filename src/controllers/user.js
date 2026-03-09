@@ -16,6 +16,12 @@ function getJose() {
   return josePromise;
 }
 
+const isSelfOrAdmin = (req, targetUserId) => {
+  if (!req?.userId) return false;
+  if (String(req.userRole) === "admin") return true;
+  return String(req.userId) === String(targetUserId);
+};
+
 
 const generateNumericVerificationCode = (length = 6) => {
   const max = 10 ** length;
@@ -498,6 +504,10 @@ const updateReviews = async(req,res) => {
 
 const addCancelled = async(req,res) => {
     try {
+        const { userId } = req.params;
+        if (!isSelfOrAdmin(req, userId)) {
+            return res.status(403).json({ message: "Unauthorized." });
+        }
         const {suspension} = req
         if (req.recentCancellations >= 3) {
             return res.status(200).json({ message: "User has more than 3 cancellations in the last 3 months. Transport authorization revoked.", suspension});
@@ -511,6 +521,9 @@ const addCancelled = async(req,res) => {
 const updateExpoPushToken = async(req, res) => {
     try {
         const {userId} = req.params
+        if (!isSelfOrAdmin(req, userId)) {
+            return res.status(403).json({ message: "Unauthorized." });
+        }
         const {newExpoPushToken} = req.body;
         const userFound = await User.findByIdAndUpdate(userId, { expoPushToken: newExpoPushToken }, { new: true });
         if (!userFound) return res.status(400).json({ message: 'User not found' });
@@ -524,6 +537,10 @@ const generateNewValidationCode = async(req, res) => {
     try {
         const {userId} = req.params
         const { email } = req.body;
+
+        if (userId && !isSelfOrAdmin(req, userId)) {
+            return res.status(403).json({ message: "Unauthorized." });
+        }
         
         const verificationCode = generateNumericVerificationCode(6);
         const currentTime = new Date();
@@ -553,6 +570,10 @@ const checkValidationCode = async(req, res) => {
     try {
         const {userId} = req.params
         const { email, verificationCode } = req.body;
+
+        if (userId && !isSelfOrAdmin(req, userId)) {
+            return res.status(403).json({ message: "Unauthorized." });
+        }
         
         let userFound;
         if(userId) {
@@ -603,6 +624,9 @@ const checkValidationCode = async(req, res) => {
 const validateMail = async(req, res) => {
     try {
         const {userId} = req.params
+        if (!isSelfOrAdmin(req, userId)) {
+            return res.status(403).json({ message: "Unauthorized." });
+        }
         const {verificationCode} = req.body
         const userFound = await User.findById(userId);
         if (!userFound) return res.status(400).json({ message: 'User not found' });
@@ -648,6 +672,10 @@ const updatePass = async(req, res) => {
     try {
         const {userId} = req.params
         const { email , verificationCode, password} = req.body;
+
+        if (userId && !isSelfOrAdmin(req, userId)) {
+            return res.status(403).json({ message: "Unauthorized." });
+        }
         const salt = await bcryptjs.genSalt(10);
         const encryptedPassword = await bcryptjs.hash(password, salt)
         let userFound;
