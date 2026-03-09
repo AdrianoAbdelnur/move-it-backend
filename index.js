@@ -6,6 +6,9 @@ require("dotenv").config();
 const cors = require("cors");
 const { setupSocket } = require("./src/socketIo");
 const { stripeWebhook } = require("./src/controllers/payment");
+const {
+  startPaymentReconciliationScheduler,
+} = require("./src/services/payments/reconciliation");
 
 const allowedOrigins = [
   "http://localhost:5173",
@@ -46,6 +49,7 @@ setupSocket(server, allowedOrigins);
 
 mongoose.connect(process.env.DB_URL).then(() => {
   console.log("Connected to MongoDB");
+  startPaymentReconciliationScheduler();
   server.listen(process.env.API_PORT, () => {
     console.log(`Application listening on port ${process.env.API_PORT}`);
   });
