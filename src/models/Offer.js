@@ -31,6 +31,11 @@ const OfferSchema = new Schema({
     default: "Pending"
   },
   payment: {
+    state: {
+      type: String,
+      enum: ["pending", "authorized", "captured", "transfer_pending", "transferred", "failed"],
+      default: "pending",
+    },
     paymentIntentId: { 
       type: String,
     },
@@ -59,6 +64,27 @@ const OfferSchema = new Schema({
     },
     transferId: { 
       type: String 
+    },
+    lastError: {
+      type: String,
+    },
+    audit: [
+      {
+        event: {
+          type: String,
+        },
+        at: {
+          type: Date,
+          default: Date.now,
+        },
+        details: {
+          type: Schema.Types.Mixed,
+        },
+      },
+    ],
+    stateUpdatedAt: {
+      type: Date,
+      default: Date.now,
     }
   }
 
