@@ -243,6 +243,11 @@ const intent = async (req, res) => {
     const offer = await Offer.findById(offerId);
     if (!offer) return res.status(404).json({ message: 'Offer not found' });
 
+    const relatedPost = await UserPost.findById(offer.post).select("owner").lean();
+    if (!relatedPost?.owner || String(relatedPost.owner) !== String(req.userId)) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
     const commission = Math.floor(amount * profitMargin);
     const totalAmount = amount + commission;
     const intentKey = buildIdempotencyKey('intent', [
@@ -317,11 +322,14 @@ const intent = async (req, res) => {
 
 const createStripeAccount = async (req, res) => {
   try {
-    const { email } = req.body;
-    const user = await User.findOne({ email });
+    const user = await User.findById(req.userId).select("email role");
     if (!user) {
       return res.status(404).json({ message: 'User not found.' });
     }
+    if (user.role !== "transport" && req.userRole !== "admin") {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+    const email = user.email;
 
     const account = await stripe.accounts.create({
       type: 'express',
@@ -344,6 +352,16 @@ const createStripeAccountLink = async (req, res) => {
   const { accountId } = req.body;
 
   try {
+    const user = await User.findById(req.userId).select("email");
+    if (!user) return res.status(404).json({ message: "User not found." });
+
+    const account = await stripe.accounts.retrieve(accountId);
+    const accountEmail = String(account?.email || "").toLowerCase();
+    const userEmail = String(user.email || "").toLowerCase();
+    if (!accountEmail || accountEmail !== userEmail) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
       refresh_url: 'https://move-it-backend-3.onrender.com/api/payment/refreshUrl',
@@ -412,6 +430,9 @@ const deleteStripeUser = async (req, res) => {
 const checkStripeAccountStatus = async (req, res) => {
   try {
     const { id } = req.params;
+    if (String(req.userId) !== String(id) && String(req.userRole) !== "admin") {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
     const user = await User.findById(id);
 
     const accountId = user?.transportInfo?.stripeAccount?.accountId;

@@ -16,6 +16,12 @@ function getJose() {
   return josePromise;
 }
 
+const isSelfOrAdmin = (req, targetUserId) => {
+  if (!req?.userId) return false;
+  if (String(req.userRole) === "admin") return true;
+  return String(req.userId) === String(targetUserId);
+};
+
 
 const generateNumericVerificationCode = (length = 6) => {
   const max = 10 ** length;
@@ -498,6 +504,10 @@ const updateReviews = async(req,res) => {
 
 const addCancelled = async(req,res) => {
     try {
+        const { userId } = req.params;
+        if (!isSelfOrAdmin(req, userId)) {
+            return res.status(403).json({ message: "Unauthorized." });
+        }
         const {suspension} = req
         if (req.recentCancellations >= 3) {
             return res.status(200).json({ message: "User has more than 3 cancellations in the last 3 months. Transport authorization revoked.", suspension});
@@ -511,6 +521,9 @@ const addCancelled = async(req,res) => {
 const updateExpoPushToken = async(req, res) => {
     try {
         const {userId} = req.params
+        if (!isSelfOrAdmin(req, userId)) {
+            return res.status(403).json({ message: "Unauthorized." });
+        }
         const {newExpoPushToken} = req.body;
         const userFound = await User.findByIdAndUpdate(userId, { expoPushToken: newExpoPushToken }, { new: true });
         if (!userFound) return res.status(400).json({ message: 'User not found' });
@@ -524,6 +537,10 @@ const generateNewValidationCode = async(req, res) => {
     try {
         const {userId} = req.params
         const { email } = req.body;
+
+        if (userId && !isSelfOrAdmin(req, userId)) {
+            return res.status(403).json({ message: "Unauthorized." });
+        }
         
         const verificationCode = generateNumericVerificationCode(6);
         const currentTime = new Date();
@@ -553,6 +570,10 @@ const checkValidationCode = async(req, res) => {
     try {
         const {userId} = req.params
         const { email, verificationCode } = req.body;
+
+        if (userId && !isSelfOrAdmin(req, userId)) {
+            return res.status(403).json({ message: "Unauthorized." });
+        }
         
         let userFound;
         if(userId) {
@@ -603,6 +624,9 @@ const checkValidationCode = async(req, res) => {
 const validateMail = async(req, res) => {
     try {
         const {userId} = req.params
+        if (!isSelfOrAdmin(req, userId)) {
+            return res.status(403).json({ message: "Unauthorized." });
+        }
         const {verificationCode} = req.body
         const userFound = await User.findById(userId);
         if (!userFound) return res.status(400).json({ message: 'User not found' });
@@ -648,8 +672,20 @@ const updatePass = async(req, res) => {
     try {
         const {userId} = req.params
         const { email , verificationCode, password} = req.body;
-        const salt = await bcryptjs.genSalt(10);
-        const encryptedPassword = await bcryptjs.hash(password, salt)
+
+        if (userId && !isSelfOrAdmin(req, userId)) {
+            return res.status(403).json({ message: "Unauthorized." });
+        }
+        if (!userId && !email) {
+            return res.status(400).json({ message: "User identifier is required." });
+        }
+        if (!verificationCode) {
+            return res.status(400).json({ message: "Verification code is required." });
+        }
+        if (!password || password.length < 6 || password.length > 16) {
+            return res.status(400).json({ message: "Password must be between 6 and 16 characters." });
+        }
+
         let userFound;
         if(userId) {
             userFound = await User.findById(userId, );
@@ -658,11 +694,50 @@ const updatePass = async(req, res) => {
         }
         if (!userFound) return res.status(400).json({ message: 'User not found' });
 
-        if (userFound.verificationInfo.verificationCode === verificationCode) {
-            userFound.password = encryptedPassword;
-            userFound.save()
-            return res.status(200).json({ message: 'password updated successfully.'});
+        const verificationInfo = userFound.verificationInfo || {};
+
+        if (verificationInfo.isPermanentlyBlocked) {
+            return res.status(403).json({ message: 'Your account is permanently blocked. Please contact support.' });
         }
+        if (verificationInfo.blockTime && new Date() < new Date(verificationInfo.blockTime)) {
+            return res.status(403).json({ message: 'Too many failed attempts. Please wait a few minutes before trying again.' });
+        }
+        if (!verificationInfo.expirationTime || new Date(verificationInfo.expirationTime) < new Date()) {
+            return res.status(410).json({ message: 'The verification code has expired.' });
+        }
+        if (verificationInfo.verificationCode !== verificationCode) {
+            userFound.verificationInfo.attempts = Number(userFound?.verificationInfo?.attempts || 0) + 1;
+
+            if (userFound.verificationInfo.attempts >= 3) {
+                if (userFound.verificationInfo.blockTime === null) {
+                    userFound.verificationInfo.blockTime = new Date(Date.now() + 10 * 60 * 1000);
+                    userFound.verificationInfo.attempts = 0;
+                } else {
+                    userFound.verificationInfo.isPermanentlyBlocked = true;
+                }
+            }
+
+            await userFound.save();
+            return res.status(400).json({
+                message: userFound.verificationInfo.isPermanentlyBlocked
+                    ? 'Your account is permanently blocked. Please contact support.'
+                    : userFound.verificationInfo.blockTime && new Date() < new Date(userFound.verificationInfo.blockTime)
+                    ? 'Too many failed attempts. Please wait before trying again.'
+                    : 'Invalid verification code.'
+            });
+        }
+
+        const salt = await bcryptjs.genSalt(10);
+        const encryptedPassword = await bcryptjs.hash(password, salt);
+        userFound.password = encryptedPassword;
+        userFound.verificationInfo.verificationCode = null;
+        userFound.verificationInfo.expirationTime = null;
+        userFound.verificationInfo.attempts = 0;
+        userFound.verificationInfo.blockTime = null;
+        userFound.verificationInfo.isPermanentlyBlocked = false;
+        await userFound.save();
+
+        return res.status(200).json({ message: 'Password updated successfully.'});
 
 
     } catch (error) {
