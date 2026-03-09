@@ -8,6 +8,7 @@ const cookieParser = require("cookie-parser");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const { setupSocket } = require("./src/socketIo");
+const { createCsrfProtection } = require("./src/middlewares/csrf");
 const { stripeWebhook } = require("./src/controllers/payment");
 const {
   startPaymentReconciliationScheduler,
@@ -57,6 +58,22 @@ const paymentLimiter = createLimiter({
   message: "Too many payment requests. Please try again later.",
 });
 
+const csrfProtection = createCsrfProtection({
+  allowedOrigins,
+  excludedPaths: [
+    "/api/user/login",
+    "/api/user/register",
+    "/api/user/googleLogin",
+    "/api/user/googleRegister",
+    "/api/user/appleLogin",
+    "/api/user/appleRegister",
+    "/api/user/logout",
+    "/api/user/generateNewValidationCode",
+    "/api/user/checkValidationCode",
+    "/api/user/updatePass",
+  ],
+});
+
 app.post(
   "/api/payment/webhook",
   express.raw({ type: "application/json" }),
@@ -89,6 +106,8 @@ app.use(cors({
   },
   credentials: true
 }));
+
+app.use(csrfProtection);
 
 app.use("/api", globalLimiter);
 app.use("/api/user/login", authLimiter);

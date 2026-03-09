@@ -23,18 +23,19 @@ const normalizeToken = (tokenValue) =>
 
 const getRequestToken = (req) => {
   const cookieToken = req?.cookies?.[AUTH_COOKIE_NAME];
-  if (cookieToken) return normalizeToken(cookieToken);
+  if (cookieToken) return { token: normalizeToken(cookieToken), source: "cookie" };
   const headerToken = req?.header("Authorization");
-  return normalizeToken(headerToken);
+  return { token: normalizeToken(headerToken), source: "header" };
 };
 
 const decodeToken = async (req, res, next) => {
   try {
-    const token = getRequestToken(req);
+    const { token, source } = getRequestToken(req);
     if (!token) return res.status(401).json({ message: "Token not found" });
     const { user } = jwt.verify(token, process.env.SECRET_WORD);
     req.userId = user.id;
     req.userRole = user.role;
+    req.authTokenSource = source;
     next();
   } catch (error) {
     return res.status(401).json({ message: error.message });
@@ -43,15 +44,17 @@ const decodeToken = async (req, res, next) => {
 
 const maybeDecodeToken = async (req, res, next) => {
   try {
-    const token = getRequestToken(req);
+    const { token, source } = getRequestToken(req);
     if (!token) {
       req.userId = null;
       req.userRole = null;
+      req.authTokenSource = null;
       return next();
     }
     const { user } = jwt.verify(token, process.env.SECRET_WORD);
     req.userId = user.id;
     req.userRole = user.role;
+    req.authTokenSource = source;
     return next();
   } catch (error) {
     return res.status(401).json({ message: error.message });

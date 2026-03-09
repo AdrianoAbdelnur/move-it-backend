@@ -23,6 +23,7 @@ const isSelfOrAdmin = (req, targetUserId) => {
 };
 
 const AUTH_COOKIE_NAME = process.env.AUTH_COOKIE_NAME || "access_token";
+const CSRF_COOKIE_NAME = process.env.CSRF_COOKIE_NAME || "csrf_token";
 const AUTH_COOKIE_MAX_AGE_MS = Number(process.env.AUTH_COOKIE_MAX_AGE_MS || 7 * 24 * 60 * 60 * 1000);
 const AUTH_COOKIE_SECURE =
   String(process.env.AUTH_COOKIE_SECURE || (process.env.NODE_ENV === "production" ? "true" : "false")).toLowerCase() ===
@@ -50,10 +51,23 @@ const setAuthCookie = (res, token) => {
   res.cookie(AUTH_COOKIE_NAME, token, getAuthCookieOptions());
 };
 
+const createCsrfToken = () => crypto.randomBytes(32).toString("hex");
+
+const setCsrfCookie = (res) => {
+  const options = getAuthCookieOptions();
+  const csrfToken = createCsrfToken();
+  res.cookie(CSRF_COOKIE_NAME, csrfToken, {
+    ...options,
+    httpOnly: false,
+  });
+  return csrfToken;
+};
+
 const clearAuthCookie = (res) => {
   const options = getAuthCookieOptions();
   delete options.maxAge;
   res.clearCookie(AUTH_COOKIE_NAME, options);
+  res.clearCookie(CSRF_COOKIE_NAME, options);
 };
 
 
@@ -111,9 +125,11 @@ const loginUser = async (req, res) => {
     jwt.sign(payload, process.env.SECRET_WORD, (error, token) => {
       if (error) throw error;
       setAuthCookie(res, token);
+      const csrfToken = setCsrfCookie(res);
       return res.status(200).json({
         message: "User successfully logged in.",
         token,
+        csrfToken,
         ...termsStatus,
       });
     });
@@ -136,9 +152,11 @@ const googleLogin = async (req, res) => {
     jwt.sign(payload, process.env.SECRET_WORD, (error, token) => {
       if (error) throw error;
       setAuthCookie(res, token);
+      const csrfToken = setCsrfCookie(res);
       return res.status(200).json({
         message: "User successfully logged in.",
         token,
+        csrfToken,
         ...termsStatus,
       });
     });
@@ -203,9 +221,11 @@ const googleRegister = async (req, res) => {
     jwt.sign(tokenPayload, process.env.SECRET_WORD, (error, token) => {
       if (error) throw error;
       setAuthCookie(res, token);
+      const csrfToken = setCsrfCookie(res);
       return res.status(200).json({
         message: "User successfully logged in.",
         token,
+        csrfToken,
         ...termsStatus,
       });
     });
