@@ -1,6 +1,7 @@
 const Offer = require('../models/Offer');
 const User = require('../models/User');
 const UserPost = require('../models/UserPost');
+const crypto = require('crypto');
 const {
   PAYMENT_STATES,
   assertTransition,
@@ -39,6 +40,14 @@ const transitionOfferPaymentState = (offer, nextState, details = {}) => {
   }
 };
 
+const buildIdempotencyKey = (action, rawParts = []) => {
+  const normalized = rawParts
+    .map((value) => String(value ?? '').trim())
+    .join('|');
+  const digest = crypto.createHash('sha256').update(normalized).digest('hex').slice(0, 32);
+  return `cac:${action}:${digest}`;
+};
+
 const intent = async (req, res) => {
   try {
     const { amount, profitMargin, offerId, email, name, providerAccountId } = req.body;
@@ -48,6 +57,13 @@ const intent = async (req, res) => {
 
     const commission = Math.floor(amount * profitMargin);
     const totalAmount = amount + commission;
+    const intentKey = buildIdempotencyKey('intent', [
+      offerId,
+      amount,
+      commission,
+      providerAccountId,
+      email,
+    ]);
 
     let customer;
     const existingCustomers = await stripe.customers.list({ email, limit: 1 });
@@ -58,17 +74,20 @@ const intent = async (req, res) => {
       customer = await stripe.customers.create({ email, name });
     }
 
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: totalAmount,
-      currency: 'aud',
-      customer: customer.id,
-      capture_method: 'manual',
-      automatic_payment_methods: { enabled: true },
-      metadata: {
-        offer_id: offerId,
-        provider_account_id: providerAccountId,
+    const paymentIntent = await stripe.paymentIntents.create(
+      {
+        amount: totalAmount,
+        currency: 'aud',
+        customer: customer.id,
+        capture_method: 'manual',
+        automatic_payment_methods: { enabled: true },
+        metadata: {
+          offer_id: offerId,
+          provider_account_id: providerAccountId,
+        },
       },
-    });
+      { idempotencyKey: intentKey },
+    );
 
     offer.payment = {
       state: PAYMENT_STATES.AUTHORIZED,
@@ -78,6 +97,9 @@ const intent = async (req, res) => {
       commission,
       captured: false,
       released: false,
+      idempotency: {
+        intentKey,
+      },
       lastError: '',
       stateUpdatedAt: new Date(),
       audit: [
@@ -263,10 +285,28 @@ const release = async (req, res) => {
       });
     }
 
+    const captureKey =
+      offer?.payment?.idempotency?.captureKey ||
+      buildIdempotencyKey('capture', [offer._id, offer.payment.paymentIntentId]);
+    const transferKey =
+      offer?.payment?.idempotency?.transferKey ||
+      buildIdempotencyKey('transfer', [offer._id, offer.payment.paymentIntentId]);
+
+    offer.payment.idempotency = {
+      ...(offer.payment.idempotency || {}),
+      captureKey,
+      transferKey,
+    };
+
     if (currentState === PAYMENT_STATES.AUTHORIZED) {
-      await stripe.paymentIntents.capture(offer.payment.paymentIntentId);
+      await stripe.paymentIntents.capture(
+        offer.payment.paymentIntentId,
+        {},
+        { idempotencyKey: captureKey },
+      );
       transitionOfferPaymentState(offer, PAYMENT_STATES.CAPTURED, {
         paymentIntentId: offer.payment.paymentIntentId,
+        captureKey,
       });
       offer.payment.captured = true;
       offer.payment.capturedAt = new Date();
@@ -276,15 +316,18 @@ const release = async (req, res) => {
       providerStripeAccountId: offer.payment.providerStripeAccountId,
     });
 
-    const transfer = await stripe.transfers.create({
-      amount: offer.payment.amount,
-      currency: 'aud',
-      destination: offer.payment.providerStripeAccountId,
-      metadata: {
-        payment_intent: offer.payment.paymentIntentId,
-        offer_id: offer._id.toString(),
+    const transfer = await stripe.transfers.create(
+      {
+        amount: offer.payment.amount,
+        currency: 'aud',
+        destination: offer.payment.providerStripeAccountId,
+        metadata: {
+          payment_intent: offer.payment.paymentIntentId,
+          offer_id: offer._id.toString(),
+        },
       },
-    });
+      { idempotencyKey: transferKey },
+    );
 
     offer.payment.released = true;
     offer.payment.releasedAt = new Date();
@@ -292,6 +335,7 @@ const release = async (req, res) => {
     offer.payment.lastError = '';
     transitionOfferPaymentState(offer, PAYMENT_STATES.TRANSFERRED, {
       transferId: transfer.id,
+      transferKey,
     });
     await offer.save();
 

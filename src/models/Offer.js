@@ -65,6 +65,11 @@ const OfferSchema = new Schema({
     transferId: { 
       type: String 
     },
+    idempotency: {
+      intentKey: { type: String },
+      captureKey: { type: String },
+      transferKey: { type: String },
+    },
     lastError: {
       type: String,
     },
