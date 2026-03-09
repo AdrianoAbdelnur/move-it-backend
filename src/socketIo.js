@@ -68,10 +68,17 @@ const canUsersExchangeMessage = async ({ postId, senderId, recipientId }) => {
 };
 
 const setupSocket = (server, allowedOrigins = []) => {
+  const isAllowedOrigin = (origin) => {
+    if (!origin) return true;
+    return allowedOrigins.includes(origin);
+  };
+
   io = socketIo(server, {
     cors: {
-      // Keep browser compatibility broad; security is enforced with JWT in handshake + event authorization.
-      origin: true,
+      origin: (origin, callback) => {
+        if (isAllowedOrigin(origin)) return callback(null, true);
+        return callback(new Error("Not allowed by CORS"));
+      },
       methods: ["GET", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"],
       credentials: true,
     },
