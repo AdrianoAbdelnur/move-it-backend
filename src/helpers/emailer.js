@@ -1,17 +1,19 @@
 const nodemailer = require("nodemailer");
 require('dotenv').config();
 
+const mailUser = process.env.GMAIL_USER || 'callacartransportation@gmail.com';
+
 const createTransport = () => {
     const transport = nodemailer.createTransport({
         host:'smtp.gmail.com',
         port:465,
         secure:true,
         auth:{
-            user:'callacartransportation@gmail.com',
+            user: mailUser,
             pass:process.env.GMAIL_PASS,
         },
         tls: {
-            rejectUnauthorized: false 
+            rejectUnauthorized: true
         }
     });
 
@@ -34,7 +36,7 @@ const sendMail = async (user) => {
           });
 
         const info = await transporter.sendMail({
-            from: 'callacartransportation@gmail.com',
+            from: mailUser,
             to: `${user.email}`,
             subject: `Hi ${user.given_name}, use this code to verify your account`,
             html: `<p>Your verification code is: <strong>${user.verificationInfo.verificationCode}</strong> and it will exprire on ${readableDate}`
