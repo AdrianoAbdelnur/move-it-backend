@@ -19,7 +19,16 @@ const getHandshakeToken = (socket) => {
   const queryToken = socket?.handshake?.query?.token;
   if (queryToken) return normalizeToken(queryToken);
   const headerToken = socket?.handshake?.headers?.authorization;
-  return normalizeToken(headerToken);
+  if (headerToken) return normalizeToken(headerToken);
+  const rawCookie = String(socket?.handshake?.headers?.cookie || "");
+  const authCookieName = process.env.AUTH_COOKIE_NAME || "access_token";
+  const cookieTokenPair = rawCookie
+    .split(";")
+    .map((cookiePart) => cookiePart.trim())
+    .find((cookiePart) => cookiePart.startsWith(`${authCookieName}=`));
+  if (!cookieTokenPair) return "";
+  const [, cookieToken = ""] = cookieTokenPair.split("=");
+  return normalizeToken(decodeURIComponent(cookieToken));
 };
 
 const getRecipientSockets = (recipient) => users[String(recipient)] || [];
