@@ -1,7 +1,10 @@
 const nodemailer = require("nodemailer");
+const fs = require("fs");
 require('dotenv').config();
 
 const mailUser = process.env.GMAIL_USER || 'callacartransportation@gmail.com';
+const mailCaPath = process.env.MAIL_TLS_CA_PATH;
+const mailCa = mailCaPath ? fs.readFileSync(mailCaPath) : null;
 
 const createTransport = () => {
     const transport = nodemailer.createTransport({
@@ -13,7 +16,8 @@ const createTransport = () => {
             pass:process.env.GMAIL_PASS,
         },
         tls: {
-            rejectUnauthorized: true
+            rejectUnauthorized: true,
+            ...(mailCa ? { ca: [mailCa] } : {})
         }
     });
 
