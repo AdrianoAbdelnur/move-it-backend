@@ -5,6 +5,7 @@ const app = express();
 require("dotenv").config();
 const cors = require("cors");
 const { setupSocket } = require("./src/socketIo");
+const { stripeWebhook } = require("./src/controllers/payment");
 
 const allowedOrigins = [
   "http://localhost:5173",
@@ -16,6 +17,12 @@ const allowedOrigins = [
     ? process.env.CORS_ORIGINS.split(",").map((origin) => origin.trim())
     : []),
 ];
+
+app.post(
+  "/api/payment/webhook",
+  express.raw({ type: "application/json" }),
+  stripeWebhook,
+);
 
 app.use(express.json({ extended: true, limit: "50mb" }));
 app.use(express.json());
