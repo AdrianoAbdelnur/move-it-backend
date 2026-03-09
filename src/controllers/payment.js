@@ -1,6 +1,7 @@
 const Offer = require('../models/Offer');
 const User = require('../models/User');
 const UserPost = require('../models/UserPost');
+const StripeWebhookEvent = require('../models/StripeWebhookEvent');
 const crypto = require('crypto');
 const {
   PAYMENT_STATES,
@@ -37,6 +38,193 @@ const transitionOfferPaymentState = (offer, nextState, details = {}) => {
   offer.payment.stateUpdatedAt = new Date();
   if (details && Object.keys(details).length) {
     pushPaymentAudit(offer, `state_${nextState}`, details);
+  }
+};
+
+const PAYMENT_STATE_ORDER = [
+  PAYMENT_STATES.PENDING,
+  PAYMENT_STATES.AUTHORIZED,
+  PAYMENT_STATES.CAPTURED,
+  PAYMENT_STATES.TRANSFER_PENDING,
+  PAYMENT_STATES.TRANSFERRED,
+];
+
+const promoteOfferState = (offer, targetState, details = {}) => {
+  const current = getCurrentPaymentState(offer.payment);
+  if (current === targetState) return;
+
+  if (targetState === PAYMENT_STATES.FAILED) {
+    if (current !== PAYMENT_STATES.TRANSFERRED) {
+      try {
+        transitionOfferPaymentState(offer, PAYMENT_STATES.FAILED, details);
+      } catch (_) {
+        offer.payment.state = PAYMENT_STATES.FAILED;
+        offer.payment.stateUpdatedAt = new Date();
+        pushPaymentAudit(offer, "state_failed_reconciled", details);
+      }
+    }
+    return;
+  }
+
+  const currentIndex = PAYMENT_STATE_ORDER.indexOf(current);
+  const targetIndex = PAYMENT_STATE_ORDER.indexOf(targetState);
+  if (currentIndex === -1 || targetIndex === -1 || targetIndex <= currentIndex) return;
+
+  for (let idx = currentIndex + 1; idx <= targetIndex; idx += 1) {
+    const next = PAYMENT_STATE_ORDER[idx];
+    try {
+      transitionOfferPaymentState(offer, next, idx === targetIndex ? details : {});
+    } catch (_) {
+      offer.payment.state = next;
+      offer.payment.stateUpdatedAt = new Date();
+      if (idx === targetIndex) {
+        pushPaymentAudit(offer, `state_${next}_reconciled`, details);
+      }
+    }
+  }
+};
+
+const findOfferForStripeObject = async (object = {}) => {
+  const offerIdFromMeta = object?.metadata?.offer_id;
+  if (offerIdFromMeta) {
+    const byMeta = await Offer.findById(offerIdFromMeta);
+    if (byMeta) return byMeta;
+  }
+
+  if (object?.payment_intent) {
+    const byPaymentIntent = await Offer.findOne({
+      "payment.paymentIntentId": object.payment_intent,
+    });
+    if (byPaymentIntent) return byPaymentIntent;
+  }
+
+  if (object?.id && String(object.object || "").toLowerCase() === "payment_intent") {
+    const byIntentId = await Offer.findOne({
+      "payment.paymentIntentId": object.id,
+    });
+    if (byIntentId) return byIntentId;
+  }
+
+  if (object?.id && String(object.object || "").toLowerCase() === "transfer") {
+    const byTransferId = await Offer.findOne({
+      "payment.transferId": object.id,
+    });
+    if (byTransferId) return byTransferId;
+  }
+
+  return null;
+};
+
+const stripeWebhook = async (req, res) => {
+  const signature = req.headers["stripe-signature"];
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  if (!webhookSecret) {
+    return res.status(500).json({ message: "Missing STRIPE_WEBHOOK_SECRET." });
+  }
+  if (!signature) {
+    return res.status(400).json({ message: "Missing stripe-signature header." });
+  }
+
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(req.body, signature, webhookSecret);
+  } catch (error) {
+    return res.status(400).json({ message: `Invalid webhook signature: ${error.message}` });
+  }
+
+  try {
+    const claim = await StripeWebhookEvent.updateOne(
+      { stripeEventId: event.id },
+      {
+        $setOnInsert: {
+          stripeEventId: event.id,
+          eventType: event.type,
+          status: "processing",
+        },
+      },
+      { upsert: true },
+    );
+
+    if (!claim?.upsertedCount) {
+      return res.status(200).json({ received: true, duplicate: true });
+    }
+
+    const object = event?.data?.object || {};
+    const offer = await findOfferForStripeObject(object);
+
+    if (offer) {
+      const eventType = event.type;
+
+      if (eventType === "payment_intent.succeeded" || eventType === "charge.captured") {
+        promoteOfferState(offer, PAYMENT_STATES.CAPTURED, {
+          eventId: event.id,
+          eventType,
+        });
+        offer.payment.captured = true;
+        offer.payment.capturedAt = offer.payment.capturedAt || new Date();
+        offer.payment.lastError = "";
+      } else if (eventType === "transfer.created") {
+        promoteOfferState(offer, PAYMENT_STATES.TRANSFERRED, {
+          eventId: event.id,
+          eventType,
+          transferId: object?.id,
+        });
+        if (object?.id) offer.payment.transferId = object.id;
+        offer.payment.released = true;
+        offer.payment.releasedAt = offer.payment.releasedAt || new Date();
+        offer.payment.lastError = "";
+      } else if (
+        eventType === "payment_intent.payment_failed" ||
+        eventType === "payment_intent.canceled" ||
+        eventType === "transfer.failed" ||
+        eventType === "transfer.reversed"
+      ) {
+        const reason =
+          object?.last_payment_error?.message ||
+          object?.failure_message ||
+          object?.failure_reason ||
+          "stripe_webhook_failure";
+        promoteOfferState(offer, PAYMENT_STATES.FAILED, {
+          eventId: event.id,
+          eventType,
+          reason,
+        });
+        offer.payment.lastError = reason;
+      }
+
+      pushPaymentAudit(offer, "webhook_received", {
+        eventId: event.id,
+        eventType: event.type,
+      });
+      await offer.save();
+    }
+
+    await StripeWebhookEvent.updateOne(
+      { stripeEventId: event.id },
+      {
+        $set: {
+          status: "processed",
+          processedAt: new Date(),
+          offer: offer?._id || null,
+        },
+      },
+    );
+
+    return res.status(200).json({ received: true });
+  } catch (error) {
+    await StripeWebhookEvent.updateOne(
+      { stripeEventId: event.id },
+      {
+        $set: {
+          status: "failed",
+          error: error?.message || "webhook_processing_failed",
+          processedAt: new Date(),
+        },
+      },
+    ).catch(() => null);
+
+    return res.status(500).json({ message: error?.message || "Webhook processing failed." });
   }
 };
 
@@ -387,4 +575,5 @@ module.exports = {
   deleteStripeUser,
   checkStripeAccountStatus,
   release,
+  stripeWebhook,
 };

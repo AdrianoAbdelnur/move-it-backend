@@ -1,5 +1,6 @@
 const { default: mongoose } = require("mongoose");
 const UserPost = require("../models/UserPost");
+const Offer = require("../models/Offer");
 const {shareNewPost, OfferSelected, notifyNewStatus} = require("./../socketIo")
 
 const expirePendingPosts = async () => {
@@ -152,6 +153,21 @@ const addNewOffer =  async (req, res) => {
 const modifyStatus =  async (req, res) => {
     try {
         const {postId, newStatus}= req.body
+        if (newStatus?.mainStatus === "confirmed") {
+          const postForConfirmation = await UserPost.findById(postId).select("offerSelected");
+          if (!postForConfirmation?.offerSelected) {
+            return res.status(409).json({ message: "Cannot confirm service without selected offer." });
+          }
+
+          const offer = await Offer.findById(postForConfirmation.offerSelected).select("payment");
+          const paymentState = offer?.payment?.state || (offer?.payment?.released ? "transferred" : "pending");
+          if (paymentState !== "transferred") {
+            return res.status(409).json({
+              message: `Cannot confirm service while payment state is '${paymentState}'.`,
+            });
+          }
+        }
+
         const newPost = await UserPost.findByIdAndUpdate(postId, { $set: { status: { ...newStatus } } }, {new: true}).populate({
             path: 'offers',
             populate: {
