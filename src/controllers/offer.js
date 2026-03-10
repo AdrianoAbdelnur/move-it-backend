@@ -1,13 +1,74 @@
 const Offer = require("../models/Offer")
+const UserPost = require("../models/UserPost")
 const { notifyOffer } = require("../socketIo")
 
 
+const MAX_OFFER_DURATION_MINUTES = 24 * 60;
+
+const normalizeDurationMinutes = (value) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 0;
+  if (parsed <= 0) return 0;
+  return Math.min(Math.floor(parsed), MAX_OFFER_DURATION_MINUTES);
+};
+
+const isSameServerDay = (valueA, valueB) => {
+  const a = new Date(valueA);
+  const b = new Date(valueB);
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+};
+
+const computeOfferExpiration = ({ postDate, offerDurationMinutes }) => {
+  const now = new Date();
+  const normalizedDuration = normalizeDurationMinutes(offerDurationMinutes);
+
+  if (postDate && normalizedDuration > 0 && isSameServerDay(postDate, now)) {
+    return new Date(now.getTime() + normalizedDuration * 60 * 1000);
+  }
+
+  const endOfDay = new Date(now);
+  endOfDay.setHours(23, 59, 59, 999);
+  return endOfDay;
+};
+
+const expirePendingOffers = async () => {
+  await Offer.updateMany(
+    {
+      isDeleted: false,
+      status: "Pending",
+      expiredTime: { $lte: new Date() },
+    },
+    { $set: { status: "expired" } },
+  );
+};
+
 const addOffer = async(req, res) => {
     try {
+        await expirePendingOffers();
+
         const offer = req.body
         const offerFound = await Offer.findOne({owner: offer.owner, isDeleted: false , post: offer.post, status: { $ne: "expired" }})
         if(!offerFound){
-            let newOffer = new Offer(req.body)
+            const post = await UserPost.findById(offer.post).select("date");
+            const serverExpiredTime = computeOfferExpiration({
+              postDate: post?.date?.date,
+              offerDurationMinutes: offer.offerDurationMinutes,
+            });
+
+            const {
+              expiredTime: _ignoredExpiredTime,
+              offerDurationMinutes: _ignoredOfferDuration,
+              ...offerPayload
+            } = offer;
+
+            let newOffer = new Offer({
+              ...offerPayload,
+              expiredTime: serverExpiredTime,
+            })
             await newOffer.save();
             newOffer = await Offer.findById(newOffer._id).populate('post').populate({
                 path: 'owner',
@@ -27,6 +88,7 @@ const addOffer = async(req, res) => {
 
 const getOffersForMyPost =  async (req, res) => {
     try {
+        await expirePendingOffers();
         const {id} = req.params
         const myOffers = await Offer.find({post: id}).populate({
             path: 'owner',
@@ -63,6 +125,7 @@ const selectOffer = async (req, res) => {
 
 const getMyAceptedOffers = async (req, res) => {
     try {
+        await expirePendingOffers();
         const { id } = req.params
         if (id) {
     
@@ -117,5 +180,6 @@ module.exports = {
     deleteOffer,
     selectOffer,
     getMyAceptedOffers,
-    modifyStatus
+    modifyStatus,
+    expirePendingOffers
 }
