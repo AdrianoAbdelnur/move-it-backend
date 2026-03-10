@@ -64,6 +64,25 @@ const getHandshakeTokenMeta = (socket) => {
 
 const getRecipientSockets = (recipient) => users[String(recipient)] || [];
 
+const normalizeOrigin = (originValue) => {
+  const raw = String(originValue || "").trim();
+  if (!raw) return "";
+
+  try {
+    const parsed = new URL(raw);
+    const protocol = String(parsed.protocol || "").toLowerCase();
+    const hostname = String(parsed.hostname || "").toLowerCase();
+    const port = String(parsed.port || "");
+    const isDefaultPort =
+      (protocol === "https:" && (port === "" || port === "443")) ||
+      (protocol === "http:" && (port === "" || port === "80"));
+    const normalizedPort = isDefaultPort ? "" : `:${port}`;
+    return `${protocol}//${hostname}${normalizedPort}`;
+  } catch (_) {
+    return raw.replace(/\/+$/, "").toLowerCase();
+  }
+};
+
 const normalizeId = (value) => {
   if (!value) return "";
   if (typeof value === "string") return value;
@@ -108,14 +127,19 @@ const canUsersExchangeMessage = async ({ postId, senderId, recipientId }) => {
 };
 
 const setupSocket = (server, allowedOrigins = []) => {
+  const allowedOriginsNormalized = new Set(
+    allowedOrigins.map((origin) => normalizeOrigin(origin)).filter(Boolean),
+  );
+
   socketDebug("setup", {
     allowedOrigins,
     allowedOriginsCount: allowedOrigins.length,
+    allowedOriginsNormalized: Array.from(allowedOriginsNormalized),
   });
 
   const isAllowedOrigin = (origin) => {
     if (!origin) return true;
-    return allowedOrigins.includes(origin);
+    return allowedOriginsNormalized.has(normalizeOrigin(origin));
   };
 
   io = socketIo(server, {
@@ -124,11 +148,13 @@ const setupSocket = (server, allowedOrigins = []) => {
         if (isAllowedOrigin(origin)) {
           socketDebug("cors_origin_allowed", {
             origin: origin || "(no-origin)",
+            normalizedOrigin: normalizeOrigin(origin),
           });
           return callback(null, true);
         }
         socketDebug("cors_origin_rejected", {
           origin: origin || "(no-origin)",
+          normalizedOrigin: normalizeOrigin(origin),
           allowedOriginsCount: allowedOrigins.length,
         });
         return callback(new Error("Not allowed by CORS"));
