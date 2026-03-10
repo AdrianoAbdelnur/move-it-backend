@@ -14,6 +14,25 @@ const {
   startPaymentReconciliationScheduler,
 } = require("./src/services/payments/reconciliation");
 
+const normalizeOrigin = (originValue) => {
+  const raw = String(originValue || "").trim();
+  if (!raw) return "";
+
+  try {
+    const parsed = new URL(raw);
+    const protocol = String(parsed.protocol || "").toLowerCase();
+    const hostname = String(parsed.hostname || "").toLowerCase();
+    const port = String(parsed.port || "");
+    const isDefaultPort =
+      (protocol === "https:" && (port === "" || port === "443")) ||
+      (protocol === "http:" && (port === "" || port === "80"));
+    const normalizedPort = isDefaultPort ? "" : `:${port}`;
+    return `${protocol}//${hostname}${normalizedPort}`;
+  } catch (_) {
+    return raw.replace(/\/+$/, "").toLowerCase();
+  }
+};
+
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
@@ -23,7 +42,10 @@ const allowedOrigins = [
   ...(process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(",").map((origin) => origin.trim())
     : []),
-];
+].filter(Boolean);
+const allowedOriginsNormalized = new Set(
+  allowedOrigins.map((origin) => normalizeOrigin(origin)).filter(Boolean),
+);
 
 const socketDebugEnabled =
   String(process.env.SOCKET_DEBUG || "").trim().toLowerCase() === "true";
@@ -32,6 +54,7 @@ if (socketDebugEnabled) {
     apiPort: process.env.API_PORT,
     allowedOrigins,
     allowedOriginsCount: allowedOrigins.length,
+    allowedOriginsNormalized: Array.from(allowedOriginsNormalized),
   });
 }
 
@@ -108,9 +131,17 @@ app.use(cookieParser());
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    const normalizedOrigin = normalizeOrigin(origin);
+    if (!origin || allowedOriginsNormalized.has(normalizedOrigin)) {
       callback(null, true);
     } else {
+      if (socketDebugEnabled) {
+        console.warn("[socket-debug] http_cors_origin_rejected", {
+          origin: origin || "(no-origin)",
+          normalizedOrigin,
+          allowedOriginsCount: allowedOrigins.length,
+        });
+      }
       callback(new Error("Not allowed by CORS"));
     }
   },
