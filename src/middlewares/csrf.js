@@ -27,6 +27,9 @@ const createCsrfProtection = ({
     const requestPath = normalizePath(req.originalUrl || req.url);
     if (excludedPathSet.has(requestPath)) return next();
 
+    const authorizationHeader = String(req.get("authorization") || "").trim();
+    if (authorizationHeader) return next();
+
     const authCookie = req?.cookies?.[authCookieName];
     if (!authCookie) return next();
 
@@ -49,4 +52,3 @@ const createCsrfProtection = ({
 };
 
 module.exports = { createCsrfProtection };
-
