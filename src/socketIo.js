@@ -62,7 +62,11 @@ const getHandshakeTokenMeta = (socket) => {
   return { token: cookieToken, source: `cookie.${authCookieName}` };
 };
 
-const getRecipientSockets = (recipient) => users[String(recipient)] || [];
+const getRecipientSockets = (recipient) => {
+  const recipientId = normalizeId(recipient);
+  if (!recipientId) return [];
+  return users[recipientId] || [];
+};
 
 const normalizeOrigin = (originValue) => {
   const raw = String(originValue || "").trim();
@@ -377,12 +381,23 @@ const notifyOffer = (recipient, newOffer) => {
     socketDebug("notify_offer_skipped_no_io", { recipient: String(recipient) });
     return;
   }
+  const recipientId = normalizeId(recipient);
   const sockets = getRecipientSockets(recipient);
+  let sentCount = 0;
   sockets.forEach((socketId) => {
     const targetSocket = io.sockets.sockets.get(socketId);
     if (targetSocket?.connected) {
       targetSocket.emit("offerNotification", newOffer);
+      sentCount += 1;
     }
+  });
+  socketDebug("notify_offer_delivery_result", {
+    recipientRaw: recipient,
+    recipientId,
+    recipientSocketCount: sockets.length,
+    sentCount,
+    offerId: newOffer?._id ? String(newOffer._id) : null,
+    postId: newOffer?.post?._id ? String(newOffer.post._id) : null,
   });
 };
 
@@ -391,12 +406,22 @@ const OfferSelected = (recipient, postOfferSelected) => {
     socketDebug("offer_selected_skipped_no_io", { recipient: String(recipient) });
     return;
   }
+  const recipientId = normalizeId(recipient);
   const sockets = getRecipientSockets(recipient);
+  let sentCount = 0;
   sockets.forEach((socketId) => {
     const targetSocket = io.sockets.sockets.get(socketId);
     if (targetSocket?.connected) {
       targetSocket.emit("OfferSelected", postOfferSelected);
+      sentCount += 1;
     }
+  });
+  socketDebug("offer_selected_delivery_result", {
+    recipientRaw: recipient,
+    recipientId,
+    recipientSocketCount: sockets.length,
+    sentCount,
+    postId: postOfferSelected?._id ? String(postOfferSelected._id) : null,
   });
 };
 
@@ -405,12 +430,22 @@ const notifyNewStatus = (recipient, newPostStatus) => {
     socketDebug("notify_status_skipped_no_io", { recipient: String(recipient) });
     return;
   }
+  const recipientId = normalizeId(recipient);
   const sockets = getRecipientSockets(recipient);
+  let sentCount = 0;
   sockets.forEach((socketId) => {
     const targetSocket = io.sockets.sockets.get(socketId);
     if (targetSocket?.connected) {
       targetSocket.emit("notifyNewStatus", newPostStatus);
+      sentCount += 1;
     }
+  });
+  socketDebug("notify_status_delivery_result", {
+    recipientRaw: recipient,
+    recipientId,
+    recipientSocketCount: sockets.length,
+    sentCount,
+    postId: newPostStatus?._id ? String(newPostStatus._id) : null,
   });
 };
 
