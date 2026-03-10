@@ -8,27 +8,58 @@ const users = {};
 const lastPong = {};
 let io;
 
+const SOCKET_DEBUG_ENABLED =
+  String(process.env.SOCKET_DEBUG || "").trim().toLowerCase() === "true";
+
+const maskToken = (tokenValue) => {
+  const token = String(tokenValue || "").trim();
+  if (!token) return "(empty)";
+  if (token.length <= 18) return `${token} (len=${token.length})`;
+  return `${token.slice(0, 12)}...${token.slice(-6)} (len=${token.length})`;
+};
+
+const tokenSignature = (tokenValue) => {
+  const token = String(tokenValue || "");
+  if (!token) return "none";
+  let hash = 2166136261;
+  for (let index = 0; index < token.length; index += 1) {
+    hash ^= token.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `fnv1a:${(hash >>> 0).toString(16)}:len${token.length}`;
+};
+
+const socketDebug = (message, payload = {}) => {
+  if (!SOCKET_DEBUG_ENABLED) return;
+  console.log(`[socket-debug] ${message}`, payload);
+};
+
 const normalizeToken = (tokenValue) =>
   String(tokenValue || "")
     .replace(/^Bearer\s+/i, "")
     .trim();
 
-const getHandshakeToken = (socket) => {
-  const authToken = socket?.handshake?.auth?.token;
-  if (authToken) return normalizeToken(authToken);
-  const queryToken = socket?.handshake?.query?.token;
-  if (queryToken) return normalizeToken(queryToken);
-  const headerToken = socket?.handshake?.headers?.authorization;
-  if (headerToken) return normalizeToken(headerToken);
+const getHandshakeTokenMeta = (socket) => {
+  const authToken = normalizeToken(socket?.handshake?.auth?.token);
+  if (authToken) return { token: authToken, source: "auth.token" };
+
+  const queryToken = normalizeToken(socket?.handshake?.query?.token);
+  if (queryToken) return { token: queryToken, source: "query.token" };
+
+  const headerToken = normalizeToken(socket?.handshake?.headers?.authorization);
+  if (headerToken) return { token: headerToken, source: "headers.authorization" };
+
   const rawCookie = String(socket?.handshake?.headers?.cookie || "");
   const authCookieName = process.env.AUTH_COOKIE_NAME || "access_token";
   const cookieTokenPair = rawCookie
     .split(";")
     .map((cookiePart) => cookiePart.trim())
     .find((cookiePart) => cookiePart.startsWith(`${authCookieName}=`));
-  if (!cookieTokenPair) return "";
-  const [, cookieToken = ""] = cookieTokenPair.split("=");
-  return normalizeToken(decodeURIComponent(cookieToken));
+  if (!cookieTokenPair) return { token: "", source: "none" };
+  const [, encodedCookieToken = ""] = cookieTokenPair.split("=");
+  const cookieToken = normalizeToken(decodeURIComponent(encodedCookieToken));
+  if (!cookieToken) return { token: "", source: "none" };
+  return { token: cookieToken, source: `cookie.${authCookieName}` };
 };
 
 const getRecipientSockets = (recipient) => users[String(recipient)] || [];
@@ -77,6 +108,11 @@ const canUsersExchangeMessage = async ({ postId, senderId, recipientId }) => {
 };
 
 const setupSocket = (server, allowedOrigins = []) => {
+  socketDebug("setup", {
+    allowedOrigins,
+    allowedOriginsCount: allowedOrigins.length,
+  });
+
   const isAllowedOrigin = (origin) => {
     if (!origin) return true;
     return allowedOrigins.includes(origin);
@@ -85,7 +121,16 @@ const setupSocket = (server, allowedOrigins = []) => {
   io = socketIo(server, {
     cors: {
       origin: (origin, callback) => {
-        if (isAllowedOrigin(origin)) return callback(null, true);
+        if (isAllowedOrigin(origin)) {
+          socketDebug("cors_origin_allowed", {
+            origin: origin || "(no-origin)",
+          });
+          return callback(null, true);
+        }
+        socketDebug("cors_origin_rejected", {
+          origin: origin || "(no-origin)",
+          allowedOriginsCount: allowedOrigins.length,
+        });
         return callback(new Error("Not allowed by CORS"));
       },
       methods: ["GET", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"],
@@ -94,8 +139,27 @@ const setupSocket = (server, allowedOrigins = []) => {
   });
 
   io.use((socket, next) => {
+    let token = "";
+    let source = "none";
+
     try {
-      const token = getHandshakeToken(socket);
+      const tokenMeta = getHandshakeTokenMeta(socket);
+      token = tokenMeta.token;
+      source = tokenMeta.source;
+
+      socketDebug("handshake_received", {
+        socketId: socket.id,
+        origin: socket?.handshake?.headers?.origin || "(no-origin)",
+        source,
+        tokenPreview: maskToken(token),
+        tokenSignature: tokenSignature(token),
+        hasAuthPayload: Boolean(socket?.handshake?.auth?.token),
+        hasQueryToken: Boolean(socket?.handshake?.query?.token),
+        hasAuthorizationHeader: Boolean(socket?.handshake?.headers?.authorization),
+        hasCookieHeader: Boolean(socket?.handshake?.headers?.cookie),
+        transport: socket?.handshake?.query?.transport || null,
+      });
+
       if (!token) {
         console.warn("Socket rejected: missing token");
         return next(new Error("Unauthorized"));
@@ -107,9 +171,24 @@ const setupSocket = (server, allowedOrigins = []) => {
       }
       socket.userId = String(user.id);
       socket.userRole = user.role;
+      socketDebug("handshake_authorized", {
+        socketId: socket.id,
+        source,
+        tokenPreview: maskToken(token),
+        tokenSignature: tokenSignature(token),
+        userId: socket.userId,
+        role: socket.userRole,
+      });
       return next();
     } catch (error) {
       console.warn("Socket rejected: invalid token", error?.message);
+      socketDebug("handshake_rejected_invalid_token", {
+        socketId: socket.id,
+        source,
+        tokenPreview: maskToken(token),
+        tokenSignature: tokenSignature(token),
+        message: error?.message,
+      });
       return next(new Error("Unauthorized"));
     }
   });
@@ -119,8 +198,19 @@ const setupSocket = (server, allowedOrigins = []) => {
     if (!users[userId]) users[userId] = [];
     users[userId].push(socket.id);
     lastPong[socket.id] = Date.now();
+    socketDebug("connection_open", {
+      socketId: socket.id,
+      userId,
+      role: socket.userRole,
+      totalSocketsForUser: users[userId].length,
+    });
 
     socket.on("newUser", (claimedUserId) => {
+      socketDebug("event_newUser", {
+        socketId: socket.id,
+        authenticatedUserId: userId,
+        claimedUserId: claimedUserId ? String(claimedUserId) : null,
+      });
       if (claimedUserId && String(claimedUserId) !== userId) {
         console.warn(
           `Socket ${socket.id} attempted to claim ${claimedUserId} but is authenticated as ${userId}`,
@@ -130,14 +220,32 @@ const setupSocket = (server, allowedOrigins = []) => {
 
     socket.on("pongCheck", () => {
       lastPong[socket.id] = Date.now();
+      socketDebug("event_pongCheck", {
+        socketId: socket.id,
+        userId,
+        timestamp: lastPong[socket.id],
+      });
     });
 
     socket.on("privateMessage", async ({ text, recipient, postId }, callback) => {
       const senderId = String(socket.userId);
       const recipientId = normalizeId(recipient);
       const normalizedPostId = normalizeId(postId);
+      socketDebug("event_privateMessage_received", {
+        socketId: socket.id,
+        senderId,
+        recipientId,
+        postId: normalizedPostId,
+        textLength: String(text || "").length,
+      });
 
       if (!text || !recipientId || !normalizedPostId) {
+        socketDebug("event_privateMessage_rejected_payload", {
+          socketId: socket.id,
+          senderId,
+          recipientId,
+          postId: normalizedPostId,
+        });
         callback?.({ status: "error", reason: "invalid_payload" });
         return;
       }
@@ -149,6 +257,12 @@ const setupSocket = (server, allowedOrigins = []) => {
           recipientId,
         });
         if (!authorized) {
+          socketDebug("event_privateMessage_rejected_unauthorized", {
+            socketId: socket.id,
+            senderId,
+            recipientId,
+            postId: normalizedPostId,
+          });
           callback?.({ status: "error", reason: "unauthorized" });
           return;
         }
@@ -168,22 +282,43 @@ const setupSocket = (server, allowedOrigins = []) => {
           }
         });
 
+        socketDebug("event_privateMessage_delivery_result", {
+          socketId: socket.id,
+          senderId,
+          recipientId,
+          postId: normalizedPostId,
+          recipientSocketCount: sockets.length,
+          sent,
+        });
         callback?.(
           sent
             ? { status: "ok" }
             : { status: "error", reason: "recipient_not_connected" },
         );
       } catch (error) {
+        socketDebug("event_privateMessage_server_error", {
+          socketId: socket.id,
+          senderId,
+          recipientId,
+          postId: normalizedPostId,
+          message: error?.message,
+        });
         callback?.({ status: "error", reason: "server_error" });
       }
     });
 
-    socket.on("disconnect", () => {
+    socket.on("disconnect", (reason) => {
       if (users[userId]) {
         users[userId] = users[userId].filter((id) => id !== socket.id);
         if (users[userId].length === 0) delete users[userId];
       }
       delete lastPong[socket.id];
+      socketDebug("connection_closed", {
+        socketId: socket.id,
+        userId,
+        reason,
+        remainingSocketsForUser: users[userId]?.length || 0,
+      });
     });
   });
 
@@ -194,9 +329,17 @@ const setupSocket = (server, allowedOrigins = []) => {
       if (now - lastTime > timeout) {
         const socket = io.sockets.sockets.get(socketId);
         if (socket) {
+          socketDebug("heartbeat_timeout_disconnect", {
+            socketId,
+            lastPongAgoMs: now - lastTime,
+          });
           socket.disconnect(true);
         }
       } else {
+        socketDebug("heartbeat_ping", {
+          socketId,
+          lastPongAgoMs: now - lastTime,
+        });
         io.to(socketId).emit("pingCheck");
       }
     }
@@ -204,6 +347,10 @@ const setupSocket = (server, allowedOrigins = []) => {
 };
 
 const notifyOffer = (recipient, newOffer) => {
+  if (!io) {
+    socketDebug("notify_offer_skipped_no_io", { recipient: String(recipient) });
+    return;
+  }
   const sockets = getRecipientSockets(recipient);
   sockets.forEach((socketId) => {
     const targetSocket = io.sockets.sockets.get(socketId);
@@ -214,6 +361,10 @@ const notifyOffer = (recipient, newOffer) => {
 };
 
 const OfferSelected = (recipient, postOfferSelected) => {
+  if (!io) {
+    socketDebug("offer_selected_skipped_no_io", { recipient: String(recipient) });
+    return;
+  }
   const sockets = getRecipientSockets(recipient);
   sockets.forEach((socketId) => {
     const targetSocket = io.sockets.sockets.get(socketId);
@@ -224,6 +375,10 @@ const OfferSelected = (recipient, postOfferSelected) => {
 };
 
 const notifyNewStatus = (recipient, newPostStatus) => {
+  if (!io) {
+    socketDebug("notify_status_skipped_no_io", { recipient: String(recipient) });
+    return;
+  }
   const sockets = getRecipientSockets(recipient);
   sockets.forEach((socketId) => {
     const targetSocket = io.sockets.sockets.get(socketId);
@@ -234,6 +389,10 @@ const notifyNewStatus = (recipient, newPostStatus) => {
 };
 
 const shareNewPost = (newPost) => {
+  if (!io) {
+    socketDebug("share_new_post_skipped_no_io");
+    return;
+  }
   io.emit("newPostNotification", newPost);
 };
 

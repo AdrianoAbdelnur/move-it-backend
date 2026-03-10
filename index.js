@@ -25,6 +25,16 @@ const allowedOrigins = [
     : []),
 ];
 
+const socketDebugEnabled =
+  String(process.env.SOCKET_DEBUG || "").trim().toLowerCase() === "true";
+if (socketDebugEnabled) {
+  console.log("[socket-debug] bootstrap", {
+    apiPort: process.env.API_PORT,
+    allowedOrigins,
+    allowedOriginsCount: allowedOrigins.length,
+  });
+}
+
 const createLimiter = ({ windowMs, max, message }) =>
   rateLimit({
     windowMs,
