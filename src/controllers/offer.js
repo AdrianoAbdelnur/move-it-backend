@@ -75,7 +75,7 @@ const addOffer = async(req, res) => {
                 select: '_id given_name family_name review transportInfo.vehicle transportInfo.stripeAccount expoPushToken'
             });;
             
-            const recipient = newOffer.post.owner;
+            const recipient = newOffer?.post?.owner?._id || newOffer?.post?.owner;
             notifyOffer(recipient, newOffer)
 
             res.status(200).json({message: 'Offer sent successfully', newOffer})
