@@ -47,17 +47,6 @@ const allowedOriginsNormalized = new Set(
   allowedOrigins.map((origin) => normalizeOrigin(origin)).filter(Boolean),
 );
 
-const socketDebugEnabled =
-  String(process.env.SOCKET_DEBUG || "").trim().toLowerCase() === "true";
-if (socketDebugEnabled) {
-  console.log("[socket-debug] bootstrap", {
-    apiPort: process.env.API_PORT,
-    allowedOrigins,
-    allowedOriginsCount: allowedOrigins.length,
-    allowedOriginsNormalized: Array.from(allowedOriginsNormalized),
-  });
-}
-
 const createLimiter = ({ windowMs, max, message }) =>
   rateLimit({
     windowMs,
@@ -139,13 +128,6 @@ app.use(cors({
     if (!origin || allowedOriginsNormalized.has(normalizedOrigin)) {
       callback(null, true);
     } else {
-      if (socketDebugEnabled) {
-        console.warn("[socket-debug] http_cors_origin_rejected", {
-          origin: origin || "(no-origin)",
-          normalizedOrigin,
-          allowedOriginsCount: allowedOrigins.length,
-        });
-      }
       callback(new Error("Not allowed by CORS"));
     }
   },

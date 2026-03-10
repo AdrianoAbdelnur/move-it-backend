@@ -8,9 +8,6 @@ const users = {};
 const lastPong = {};
 let io;
 
-const SOCKET_DEBUG_ENABLED =
-  String(process.env.SOCKET_DEBUG || "").trim().toLowerCase() === "true";
-
 const maskToken = (tokenValue) => {
   const token = String(tokenValue || "").trim();
   if (!token) return "(empty)";
@@ -30,8 +27,7 @@ const tokenSignature = (tokenValue) => {
 };
 
 const socketDebug = (message, payload = {}) => {
-  if (!SOCKET_DEBUG_ENABLED) return;
-  console.log(`[socket-debug] ${message}`, payload);
+  return;
 };
 
 const normalizeToken = (tokenValue) =>
