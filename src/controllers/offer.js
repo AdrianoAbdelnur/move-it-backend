@@ -51,6 +51,9 @@ const addOffer = async(req, res) => {
         await expirePendingOffers();
 
         const offer = req.body
+        if (String(offer?.owner || "") !== String(req.userId || "") && String(req.userRole) !== "admin") {
+          return res.status(403).json({ message: "Unauthorized" });
+        }
         const offerFound = await Offer.findOne({owner: offer.owner, isDeleted: false , post: offer.post, status: { $ne: "expired" }})
         if(!offerFound){
             const post = await UserPost.findById(offer.post).select("date");
@@ -90,6 +93,11 @@ const getOffersForMyPost =  async (req, res) => {
     try {
         await expirePendingOffers();
         const {id} = req.params
+        const post = await UserPost.findById(id).select("owner").lean();
+        if (!post) return res.status(404).json({ message: "Post not found" });
+        if (String(post.owner) !== String(req.userId) && String(req.userRole) !== "admin") {
+          return res.status(403).json({ message: "Unauthorized" });
+        }
         const myOffers = await Offer.find({post: id}).populate({
             path: 'owner',
             select: '_id given_name family_name review transportInfo.vehicle'
@@ -103,6 +111,11 @@ const getOffersForMyPost =  async (req, res) => {
  const deleteOffer = async (req, res) => {
     try {
         const { id } = req.params;
+        const existingOffer = await Offer.findById(id).select("owner");
+        if (!existingOffer) return res.status(400).json({ message: 'offer no found' });
+        if (String(existingOffer.owner) !== String(req.userId) && String(req.userRole) !== "admin") {
+          return res.status(403).json({ message: "Unauthorized" });
+        }
         const offerToDelete = await Offer.findByIdAndUpdate(id, { isDeleted: true }, { new: true });
         if (!offerToDelete) return res.status(400).json({ message: 'offer no found' });
         res.status(200).json({ message: 'Offer deleted successfully.', offerToDelete });
@@ -114,6 +127,13 @@ const getOffersForMyPost =  async (req, res) => {
 const selectOffer = async (req, res) => {
     try {
         const { id } = req.params;
+        const offerToSelect = await Offer.findById(id).select("post");
+        if (!offerToSelect) return res.status(404).json({ message: "Offer not found" });
+        const post = await UserPost.findById(offerToSelect.post).select("owner");
+        if (!post) return res.status(404).json({ message: "Post not found" });
+        if (String(post.owner) !== String(req.userId) && String(req.userRole) !== "admin") {
+          return res.status(403).json({ message: "Unauthorized" });
+        }
         const offerFound = await Offer.findByIdAndUpdate(id, {status: "offerSelected"}, {new:true})
         if (offerFound) {
             res.status(200).json({ message: 'Offer selected.', offerFound });
@@ -127,6 +147,9 @@ const getMyAceptedOffers = async (req, res) => {
     try {
         await expirePendingOffers();
         const { id } = req.params
+        if (String(id) !== String(req.userId) && String(req.userRole) !== "admin") {
+          return res.status(403).json({ message: "Unauthorized" });
+        }
         if (id) {
     
             const offersFound = await Offer.find({ owner: id, status: "offerSelected" }).populate({
@@ -151,12 +174,20 @@ const modifyStatus = async (req, res) => {
         const { offerId, newStatus } = req.body;
 
         if (Array.isArray(offerId)) {
+            if (String(req.userRole) !== "admin") {
+                return res.status(403).json({ message: "Unauthorized" });
+            }
             await Offer.updateMany(
                 { _id: { $in: offerId } },
                 { $set: { status: newStatus } }
             );
             return res.status(200).json({ message: 'The offers status have been updated'});
         } else {
+            const targetOffer = await Offer.findById(offerId).select("owner");
+            if (!targetOffer) return res.status(404).json({ message: "Offer not found" });
+            if (String(targetOffer.owner) !== String(req.userId) && String(req.userRole) !== "admin") {
+                return res.status(403).json({ message: "Unauthorized" });
+            }
             const updatedOffers = await Offer.findByIdAndUpdate(
                 offerId,
                 { $set: { status: newStatus } },

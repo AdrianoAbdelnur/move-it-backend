@@ -236,9 +236,15 @@ const buildIdempotencyKey = (action, rawParts = []) => {
   return `cac:${action}:${digest}`;
 };
 
+const getServerProfitMargin = () => {
+  const raw = Number(process.env.PAYMENT_PLATFORM_FEE_PERCENT);
+  if (!Number.isFinite(raw) || raw < 0 || raw > 1) return 0.2;
+  return raw;
+};
+
 const intent = async (req, res) => {
   try {
-    const { amount, profitMargin, offerId, email, name, providerAccountId } = req.body;
+    const { offerId } = req.body;
 
     const offer = await Offer.findById(offerId);
     if (!offer) return res.status(404).json({ message: 'Offer not found' });
@@ -248,8 +254,33 @@ const intent = async (req, res) => {
       return res.status(403).json({ message: "Unauthorized" });
     }
 
+    const payer = await User.findById(req.userId).select("email given_name family_name").lean();
+    if (!payer?.email) {
+      return res.status(404).json({ message: "Payer user not found." });
+    }
+
+    const provider = await User.findById(offer.owner)
+      .select("transportInfo.stripeAccount.accountId transportInfo.stripeAccount.validatedAccount")
+      .lean();
+    const providerAccountId = provider?.transportInfo?.stripeAccount?.accountId;
+    const providerAccountValidated = provider?.transportInfo?.stripeAccount?.validatedAccount === true;
+    if (!providerAccountId) {
+      return res.status(409).json({ message: "Provider has no Stripe account configured." });
+    }
+    if (!providerAccountValidated) {
+      return res.status(409).json({ message: "Provider Stripe account is not validated yet." });
+    }
+
+    const amount = Math.floor(Number(offer.price || 0) * 100);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return res.status(400).json({ message: "Invalid offer amount." });
+    }
+
+    const profitMargin = getServerProfitMargin();
     const commission = Math.floor(amount * profitMargin);
     const totalAmount = amount + commission;
+    const email = String(payer.email || "").trim().toLowerCase();
+    const name = `${String(payer.given_name || "").trim()} ${String(payer.family_name || "").trim()}`.trim() || "User";
     const intentKey = buildIdempotencyKey('intent', [
       offerId,
       amount,
@@ -506,6 +537,10 @@ const release = async (req, res) => {
       captureKey,
       transferKey,
     };
+
+    if (!offer?.payment?.providerStripeAccountId) {
+      return res.status(409).json({ message: "Missing provider Stripe account for transfer." });
+    }
 
     if (currentState === PAYMENT_STATES.AUTHORIZED) {
       await stripe.paymentIntents.capture(

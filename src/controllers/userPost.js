@@ -23,6 +23,11 @@ const addPost = async(req, res) => {
     try {
         const post = req.body
         if (post._id) {
+           const currentPost = await UserPost.findById(post._id).select("owner");
+           if (!currentPost) return res.status(404).json({ message: "Post not found" });
+           if (String(currentPost.owner) !== String(req.userId) && String(req.userRole) !== "admin") {
+             return res.status(403).json({ message: "Unauthorized" });
+           }
            const updatedPost = await UserPost.findByIdAndUpdate(post._id, post, {new:true}).populate({
             path: 'offers',
             populate: {
@@ -45,6 +50,9 @@ const addPost = async(req, res) => {
           shareNewPost(updatedPost)
            res.status(200).json({message: 'Post updated successfully', newPost: updatedPost})
         } else {
+            if (String(post?.owner || "") !== String(req.userId || "") && String(req.userRole) !== "admin") {
+              return res.status(403).json({ message: "Unauthorized" });
+            }
             const newPost = new UserPost(post);
             await newPost.save();
             const populatedPost = await UserPost.findById(newPost._id)
@@ -76,6 +84,9 @@ const getMyPosts =  async (req, res) => {
         await expirePendingPosts();
         await expirePendingOffers();
         const {id} = req.params
+        if (String(id) !== String(req.userId) && String(req.userRole) !== "admin") {
+          return res.status(403).json({ message: "Unauthorized" });
+        }
         const myPost = await UserPost.find({owner: id}).populate({
             path: 'offers',
             populate: {
@@ -146,6 +157,14 @@ const addNewOffer =  async (req, res) => {
     try {
         const {postId, newOfferId} = req.body
         const postFound = await UserPost.findById(postId);
+        const offerFound = await Offer.findById(newOfferId).select("owner post");
+        if (!offerFound) return res.status(404).json({ message: "Offer not found" });
+        if (String(offerFound.owner) !== String(req.userId) && String(req.userRole) !== "admin") {
+          return res.status(403).json({ message: "Unauthorized" });
+        }
+        if (String(offerFound.post) !== String(postId)) {
+          return res.status(409).json({ message: "Offer does not belong to post." });
+        }
         if (postFound) {
             const newPost = await UserPost.findByIdAndUpdate(postId, {$push: { offers: newOfferId }, "status.newOffers": true}, {new: true})
             res.status(200).json({message: 'Offer sent succesfully', newPost})
@@ -158,13 +177,33 @@ const addNewOffer =  async (req, res) => {
 const modifyStatus =  async (req, res) => {
     try {
         const {postId, newStatus}= req.body
+        const targetPost = await UserPost.findById(postId)
+          .select("owner offerSelected")
+          .populate({
+            path: "offerSelected",
+            select: "owner",
+          });
+        if (!targetPost) return res.status(404).json({ message: "Post not found" });
+
+        const postOwnerId = String(targetPost.owner || "");
+        const selectedOfferOwnerId = String(targetPost?.offerSelected?.owner || "");
+        const requesterId = String(req.userId || "");
+        const isAdmin = String(req.userRole) === "admin";
+        const canActOnPost = isAdmin || requesterId === postOwnerId || requesterId === selectedOfferOwnerId;
+        if (!canActOnPost) {
+          return res.status(403).json({ message: "Unauthorized" });
+        }
+
         if (newStatus?.mainStatus === "confirmed") {
-          const postForConfirmation = await UserPost.findById(postId).select("offerSelected");
-          if (!postForConfirmation?.offerSelected) {
+          if (requesterId !== postOwnerId && !isAdmin) {
+            return res.status(403).json({ message: "Only the post owner can confirm the service." });
+          }
+          if (!targetPost?.offerSelected) {
             return res.status(409).json({ message: "Cannot confirm service without selected offer." });
           }
 
-          const offer = await Offer.findById(postForConfirmation.offerSelected).select("payment");
+          const selectedOfferId = targetPost?.offerSelected?._id || targetPost?.offerSelected;
+          const offer = await Offer.findById(selectedOfferId).select("payment");
           const paymentState = offer?.payment?.state || (offer?.payment?.released ? "transferred" : "pending");
           if (paymentState !== "transferred") {
             return res.status(409).json({
@@ -202,6 +241,16 @@ const modifyStatus =  async (req, res) => {
 const selectOffer = async(req, res) => {
     try {
         const {postId, offerSelected} = req.body
+        const post = await UserPost.findById(postId).select("owner");
+        if (!post) return res.status(404).json({ message: "Post not found" });
+        if (String(post.owner) !== String(req.userId) && String(req.userRole) !== "admin") {
+          return res.status(403).json({ message: "Unauthorized" });
+        }
+        const selectedOffer = await Offer.findById(offerSelected).select("post");
+        if (!selectedOffer) return res.status(404).json({ message: "Offer not found" });
+        if (String(selectedOffer.post) !== String(postId)) {
+          return res.status(409).json({ message: "Offer does not belong to post." });
+        }
 
         const postFound = await UserPost.findByIdAndUpdate(postId, {offerSelected, "status.mainStatus": "offerSelected", "status.offerAcepted": true}, {new:true}).populate({
             path: 'offerSelected',
@@ -225,9 +274,23 @@ const addMessage = async(req, res) => {
         const { postId } = req.params;
         const { sender, text } = req.body;
 
-        const userPost = await UserPost.findById(postId);
+        const userPost = await UserPost.findById(postId).populate({
+          path: "offerSelected",
+          select: "owner",
+        });
         if (!userPost) {
             return res.status(404).json({ error: 'UserPost not found'});
+        }
+        const requesterId = String(req.userId || "");
+        const canSendMessage =
+          String(req.userRole) === "admin" ||
+          requesterId === String(userPost.owner || "") ||
+          requesterId === String(userPost?.offerSelected?.owner || "");
+        if (!canSendMessage) {
+          return res.status(403).json({ message: "Unauthorized" });
+        }
+        if (String(sender || "") !== requesterId && String(req.userRole) !== "admin") {
+          return res.status(403).json({ message: "Invalid sender." });
         }
         const newMessage = {
             sender,
@@ -250,6 +313,21 @@ const addComplaint = async(req, res) => {
     try {
         const { postId } = req.params;
         const { complaintText} = req.body;
+        const currentPost = await UserPost.findById(postId).populate({
+          path: "offerSelected",
+          select: "owner",
+        });
+        if (!currentPost) {
+          return res.status(404).json({ error: 'UserPost not found'});
+        }
+        const requesterId = String(req.userId || "");
+        const canComplain =
+          String(req.userRole) === "admin" ||
+          requesterId === String(currentPost.owner || "") ||
+          requesterId === String(currentPost?.offerSelected?.owner || "");
+        if (!canComplain) {
+          return res.status(403).json({ message: "Unauthorized" });
+        }
 
         const newPost = await UserPost.findByIdAndUpdate(postId, {
             $set: {
